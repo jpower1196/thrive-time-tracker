@@ -1,0 +1,13 @@
+{
+  "name": "time-thrive-tracker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A shared web timer that anyone on the site can control.",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

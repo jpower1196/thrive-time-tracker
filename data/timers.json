@@ -1,0 +1,85 @@
+{
+  "activeTimerId": "roller-table-1",
+  "timers": [
+    {
+      "id": "bed-1",
+      "name": "Bed 1",
+      "durationMs": 600000,
+      "remainingMs": 600000,
+      "running": false,
+      "startedAt": null,
+      "updatedAt": 1782959041975,
+      "changedBy": "Codex check"
+    },
+    {
+      "id": "bed-2",
+      "name": "Bed 2",
+      "durationMs": 600000,
+      "remainingMs": 600000,
+      "running": false,
+      "startedAt": null,
+      "updatedAt": 1782958937281,
+      "changedBy": "System"
+    },
+    {
+      "id": "bed-3",
+      "name": "Bed 3",
+      "durationMs": 600000,
+      "remainingMs": 600000,
+      "running": false,
+      "startedAt": null,
+      "updatedAt": 1782958937281,
+      "changedBy": "System"
+    },
+    {
+      "id": "bed-4",
+      "name": "Bed 4",
+      "durationMs": 600000,
+      "remainingMs": 600000,
+      "running": false,
+      "startedAt": null,
+      "updatedAt": 1782958937281,
+      "changedBy": "System"
+    },
+    {
+      "id": "bed-5",
+      "name": "Bed 5",
+      "durationMs": 600000,
+      "remainingMs": 600000,
+      "running": false,
+      "startedAt": null,
+      "updatedAt": 1782958937281,
+      "changedBy": "System"
+    },
+    {
+      "id": "roller-table-1",
+      "name": "Roller Table 1",
+      "durationMs": 600000,
+      "remainingMs": 596021,
+      "running": false,
+      "startedAt": null,
+      "updatedAt": 1782960195222,
+      "changedBy": "Site visitor"
+    },
+    {
+      "id": "roller-table-2",
+      "name": "Roller Table 2",
+      "durationMs": 600000,
+      "remainingMs": 600000,
+      "running": false,
+      "startedAt": null,
+      "updatedAt": 1782959244641,
+      "changedBy": "System"
+    },
+    {
+      "id": "decompression-chair",
+      "name": "Decompression Chair",
+      "durationMs": 720000,
+      "remainingMs": 720000,
+      "running": false,
+      "startedAt": null,
+      "updatedAt": 1782959244641,
+      "changedBy": "System"
+    }
+  ]
+}
