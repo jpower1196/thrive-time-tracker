@@ -11,24 +11,29 @@ const DATA_FILE = path.join(DATA_DIR, "timers.json");
 const clients = new Set();
 
 const TIMER_PRESETS = [
-  { id: "bed-1", name: "Bed 1", minutes: 10 },
-  { id: "bed-2", name: "Bed 2", minutes: 10 },
-  { id: "bed-3", name: "Bed 3", minutes: 10 },
-  { id: "bed-4", name: "Bed 4", minutes: 10 },
-  { id: "bed-5", name: "Bed 5", minutes: 10 },
-  { id: "roller-table-1", name: "Roller Table 1", minutes: 10 },
-  { id: "roller-table-2", name: "Roller Table 2", minutes: 10 },
-  { id: "decompression-chair", name: "Decompression Chair", minutes: 12 }
+  { id: "bed-1", name: "Bed 1", minutes: 10, mode: "countdown", group: "therapy" },
+  { id: "bed-2", name: "Bed 2", minutes: 10, mode: "countdown", group: "therapy" },
+  { id: "bed-3", name: "Bed 3", minutes: 10, mode: "countdown", group: "therapy" },
+  { id: "bed-4", name: "Bed 4", minutes: 10, mode: "countdown", group: "therapy" },
+  { id: "bed-5", name: "Bed 5", minutes: 10, mode: "countdown", group: "therapy" },
+  { id: "roller-table-1", name: "Roller Table 1", minutes: 10, mode: "countdown", group: "therapy" },
+  { id: "roller-table-2", name: "Roller Table 2", minutes: 10, mode: "countdown", group: "therapy" },
+  { id: "decompression-chair", name: "Decompression Chair", minutes: 12, mode: "countdown", group: "therapy" },
+  { id: "room-1", name: "Room 1", minutes: 0, mode: "countup", group: "provider" },
+  { id: "room-2", name: "Room 2", minutes: 0, mode: "countup", group: "provider" },
+  { id: "room-3", name: "Room 3", minutes: 0, mode: "countup", group: "provider" }
 ];
 
-function createTimer(name = "Bed 1", minutes = 10, id = null) {
-  const durationMs = Math.max(0, Number(minutes) || 10) * 60 * 1000;
+function createTimer(name = "Bed 1", minutes = 10, id = null, mode = "countdown", group = "therapy") {
+  const durationMs = Math.max(0, Number(minutes) || 0) * 60 * 1000;
 
   return {
     id: id || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
     name: String(name || "Timer").trim().slice(0, 80) || "Timer",
+    mode,
+    group,
     durationMs,
-    remainingMs: durationMs,
+    remainingMs: mode === "countup" ? 0 : durationMs,
     running: false,
     startedAt: null,
     updatedAt: Date.now(),
@@ -38,7 +43,7 @@ function createTimer(name = "Bed 1", minutes = 10, id = null) {
 
 function defaultState() {
   const timers = TIMER_PRESETS.map((timer) => (
-    createTimer(timer.name, timer.minutes, timer.id)
+    createTimer(timer.name, timer.minutes, timer.id, timer.mode, timer.group)
   ));
 
   return {
@@ -61,6 +66,8 @@ function loadState() {
       timers: parsed.timers.map((timer) => ({
         id: String(timer.id || createTimer().id),
         name: String(timer.name || "Timer").trim().slice(0, 80) || "Timer",
+        mode: String(timer.mode || "countdown"),
+        group: String(timer.group || "therapy"),
         durationMs: Math.max(0, Number(timer.durationMs) || 0),
         remainingMs: Math.max(0, Number(timer.remainingMs) || 0),
         running: Boolean(timer.running),
@@ -81,20 +88,20 @@ function normalizeFixedState(inputState) {
       timer.id === preset.id || timer.name.toLowerCase() === preset.name.toLowerCase()
     ));
     const durationMs = preset.minutes * 60 * 1000;
+    const savedMs = Math.max(0, Number(existing?.remainingMs) || 0);
 
     if (!existing) {
-      return createTimer(preset.name, preset.minutes, preset.id);
+      return createTimer(preset.name, preset.minutes, preset.id, preset.mode, preset.group);
     }
 
     return {
       ...existing,
       id: preset.id,
       name: preset.name,
+      mode: preset.mode,
+      group: preset.group,
       durationMs,
-      remainingMs: Math.min(
-        Math.max(0, Number(existing.remainingMs) || durationMs),
-        durationMs
-      )
+      remainingMs: preset.mode === "countup" ? savedMs : Math.min(savedMs || durationMs, durationMs)
     };
   });
 
@@ -113,9 +120,13 @@ function saveState() {
   fs.writeFileSync(DATA_FILE, JSON.stringify(state, null, 2));
 }
 
-function currentRemainingMs(timer) {
+function currentTimerMs(timer) {
   if (!timer.running || !timer.startedAt) {
     return timer.remainingMs;
+  }
+
+  if (timer.mode === "countup") {
+    return timer.remainingMs + (Date.now() - timer.startedAt);
   }
 
   return Math.max(0, timer.remainingMs - (Date.now() - timer.startedAt));
@@ -125,16 +136,16 @@ function normalizeTimers() {
   let changed = false;
   const fixedState = normalizeFixedState(state);
 
-  if (JSON.stringify(fixedState.timers.map(({ id, name, durationMs }) => ({ id, name, durationMs }))) !==
-    JSON.stringify(state.timers.map(({ id, name, durationMs }) => ({ id, name, durationMs })))) {
+  if (JSON.stringify(fixedState.timers.map(({ id, name, mode, group, durationMs }) => ({ id, name, mode, group, durationMs }))) !==
+    JSON.stringify(state.timers.map(({ id, name, mode, group, durationMs }) => ({ id, name, mode, group, durationMs })))) {
     state = fixedState;
     changed = true;
   }
 
   for (const timer of state.timers) {
-    const remainingMs = currentRemainingMs(timer);
+    const remainingMs = currentTimerMs(timer);
 
-    if (timer.running && remainingMs <= 0) {
+    if (timer.mode !== "countup" && timer.running && remainingMs <= 0) {
       timer.running = false;
       timer.remainingMs = 0;
       timer.startedAt = null;
@@ -158,8 +169,10 @@ function publicTimer(timer) {
   return {
     id: timer.id,
     name: timer.name,
+    mode: timer.mode,
+    group: timer.group,
     durationMs: timer.durationMs,
-    remainingMs: currentRemainingMs(timer),
+    remainingMs: currentTimerMs(timer),
     running: timer.running,
     updatedAt: timer.updatedAt,
     changedBy: timer.changedBy
@@ -192,28 +205,30 @@ function broadcast() {
 }
 
 function applyTimerChange(timer, action, seconds, actor) {
-  const remaining = currentRemainingMs(timer);
+  const current = currentTimerMs(timer);
 
   if (action === "start") {
-    timer.remainingMs = remaining <= 0 ? timer.durationMs : remaining;
+    timer.remainingMs = timer.mode === "countup" || timer.running
+      ? current
+      : timer.durationMs;
     timer.running = true;
     timer.startedAt = Date.now();
   }
 
   if (action === "stop") {
-    timer.remainingMs = remaining;
+    timer.remainingMs = current;
     timer.running = false;
     timer.startedAt = null;
   }
 
   if (action === "reset") {
-    timer.remainingMs = timer.durationMs;
+    timer.remainingMs = timer.mode === "countup" ? 0 : timer.durationMs;
     timer.running = false;
     timer.startedAt = null;
   }
 
   if (action === "add") {
-    const nextRemaining = Math.max(0, remaining + seconds * 1000);
+    const nextRemaining = Math.max(0, current + seconds * 1000);
     timer.remainingMs = nextRemaining;
     timer.durationMs = Math.max(timer.durationMs, nextRemaining);
     timer.startedAt = timer.running ? Date.now() : null;

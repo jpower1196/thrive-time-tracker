@@ -1,19 +1,23 @@
 {
-  "activeTimerId": "roller-table-1",
+  "activeTimerId": "bed-1",
   "timers": [
     {
       "id": "bed-1",
       "name": "Bed 1",
+      "mode": "countdown",
+      "group": "therapy",
       "durationMs": 600000,
       "remainingMs": 600000,
       "running": false,
       "startedAt": null,
-      "updatedAt": 1782959041975,
-      "changedBy": "Codex check"
+      "updatedAt": 1783037882666,
+      "changedBy": "Site visitor"
     },
     {
       "id": "bed-2",
       "name": "Bed 2",
+      "mode": "countdown",
+      "group": "therapy",
       "durationMs": 600000,
       "remainingMs": 600000,
       "running": false,
@@ -24,6 +28,8 @@
     {
       "id": "bed-3",
       "name": "Bed 3",
+      "mode": "countdown",
+      "group": "therapy",
       "durationMs": 600000,
       "remainingMs": 600000,
       "running": false,
@@ -34,6 +40,8 @@
     {
       "id": "bed-4",
       "name": "Bed 4",
+      "mode": "countdown",
+      "group": "therapy",
       "durationMs": 600000,
       "remainingMs": 600000,
       "running": false,
@@ -44,6 +52,8 @@
     {
       "id": "bed-5",
       "name": "Bed 5",
+      "mode": "countdown",
+      "group": "therapy",
       "durationMs": 600000,
       "remainingMs": 600000,
       "running": false,
@@ -54,16 +64,20 @@
     {
       "id": "roller-table-1",
       "name": "Roller Table 1",
+      "mode": "countdown",
+      "group": "therapy",
       "durationMs": 600000,
-      "remainingMs": 596021,
+      "remainingMs": 600000,
       "running": false,
       "startedAt": null,
-      "updatedAt": 1782960195222,
+      "updatedAt": 1783037881638,
       "changedBy": "Site visitor"
     },
     {
       "id": "roller-table-2",
       "name": "Roller Table 2",
+      "mode": "countdown",
+      "group": "therapy",
       "durationMs": 600000,
       "remainingMs": 600000,
       "running": false,
@@ -74,11 +88,49 @@
     {
       "id": "decompression-chair",
       "name": "Decompression Chair",
+      "mode": "countdown",
+      "group": "therapy",
       "durationMs": 720000,
       "remainingMs": 720000,
       "running": false,
       "startedAt": null,
       "updatedAt": 1782959244641,
+      "changedBy": "System"
+    },
+    {
+      "id": "room-1",
+      "name": "Room 1",
+      "mode": "countup",
+      "group": "provider",
+      "durationMs": 0,
+      "remainingMs": 0,
+      "running": false,
+      "startedAt": null,
+      "updatedAt": 1783037880184,
+      "changedBy": "Site visitor"
+    },
+    {
+      "id": "room-2",
+      "name": "Room 2",
+      "mode": "countup",
+      "group": "provider",
+      "durationMs": 0,
+      "remainingMs": 0,
+      "running": false,
+      "startedAt": null,
+      "updatedAt": 1783037879392,
+      "changedBy": "Site visitor"
+    },
+    {
+      "id": "room-3",
+      "name": "Room 3",
+      "mode": "countup",
+      "group": "provider",
+      "durationMs": 0,
+      "remainingMs": 0,
+      "running": false,
+      "startedAt": null,
+      "updatedAt": 1783031396079,
       "changedBy": "System"
     }
   ]

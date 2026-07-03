@@ -1,11 +1,14 @@
 const els = {
-  timerList: document.querySelector("#timerList")
+  timerList: document.querySelector("#timerList"),
+  providerList: document.querySelector("#providerList")
 };
 
 let state = {
   activeTimerId: null,
   timers: []
 };
+
+const temporaryNames = new Map();
 
 function actor() {
   return "Site visitor";
@@ -21,6 +24,14 @@ function formatTime(ms) {
 
 function formatMinutes(ms) {
   return Math.round(ms / 60000);
+}
+
+function timerMeta(timer) {
+  if (timer.mode === "countup") {
+    return "Patient Wait";
+  }
+
+  return `${formatMinutes(timer.durationMs)} min session`;
 }
 
 async function requestJson(url, options = {}) {
@@ -41,6 +52,10 @@ async function requestJson(url, options = {}) {
 }
 
 async function changeTimerFor(timerId, action) {
+  if (action === "reset") {
+    temporaryNames.delete(timerId);
+  }
+
   await requestJson(`/api/timers/${timerId}`, {
     method: "POST",
     body: JSON.stringify({
@@ -51,40 +66,105 @@ async function changeTimerFor(timerId, action) {
   });
 }
 
+async function addSecondsFor(timerId, seconds) {
+  await requestJson(`/api/timers/${timerId}`, {
+    method: "POST",
+    body: JSON.stringify({
+      action: "add",
+      seconds,
+      actor: actor()
+    })
+  });
+}
+
 function renderTimerList() {
+  const focusedInput = document.activeElement?.classList?.contains("temp-name-input")
+    ? document.activeElement
+    : null;
+  const focusedTimerId = focusedInput?.dataset.timerId || null;
+  const selectionStart = focusedInput?.selectionStart || 0;
+  const selectionEnd = focusedInput?.selectionEnd || selectionStart;
+
   els.timerList.innerHTML = "";
+  els.providerList.innerHTML = "";
 
   for (const timer of state.timers) {
     const card = document.createElement("article");
-    const percent = timer.durationMs > 0 ? timer.remainingMs / timer.durationMs : 0;
-    card.className = `timer-card${timer.running ? " running" : ""}`;
+    const percent = timer.mode === "countup"
+      ? timer.remainingMs / (5 * 60 * 1000)
+      : timer.remainingMs / timer.durationMs;
+    const isProvider = timer.group === "provider";
+    const isWarning = isProvider && timer.remainingMs > 2.5 * 60 * 1000 && timer.remainingMs <= 5 * 60 * 1000;
+    const isOverdue = isProvider && timer.remainingMs > 5 * 60 * 1000;
+    const isTherapy = !isProvider;
+    const isTherapyCaution = isTherapy && timer.remainingMs > 2.5 * 60 * 1000 && timer.remainingMs <= 5 * 60 * 1000;
+    const isTherapyUrgent = isTherapy && timer.remainingMs <= 2.5 * 60 * 1000;
+    card.className = `timer-card${isTherapy ? " therapy-card" : ""}${isTherapyCaution ? " therapy-caution" : ""}${isTherapyUrgent ? " therapy-urgent" : ""}${isProvider ? " provider-card" : ""}${isWarning ? " warning" : ""}${isOverdue ? " overdue" : ""}${timer.running ? " running" : ""}`;
     card.dataset.id = timer.id;
     card.innerHTML = `
       <div class="card-topline">
-        <span class="timer-state">${timer.running ? "Running" : "Stopped"}</span>
+        <input class="temp-name-input" type="text" maxlength="32" placeholder="Name" aria-label="Temporary name for ${timer.name}">
         <span class="tile-dot" aria-hidden="true"></span>
       </div>
       <div class="tile-main">
         <h3 class="tile-name"></h3>
-        <span class="tile-meta">${formatMinutes(timer.durationMs)} min session</span>
+        <span class="tile-meta">${timerMeta(timer)}</span>
       </div>
       <div class="tile-time">${formatTime(timer.remainingMs)}</div>
-      <div class="mini-progress" aria-hidden="true">
+      <div class="mini-progress${timer.mode === "countup" ? " wait-progress" : ""}" aria-hidden="true">
         <span style="transform: scaleX(${Math.max(0, Math.min(1, percent))})"></span>
       </div>
       <div class="card-actions">
         <button class="button compact toggle-timer" type="button">${timer.running ? "Stop" : "Start"}</button>
         <button class="button compact reset-timer" type="button">Reset</button>
+        ${isProvider ? "" : `
+          <div class="time-adjustments">
+            <button class="button compact adjust-time subtract-time" type="button">-5s</button>
+            <button class="button compact adjust-time add-time" type="button">+5s</button>
+          </div>
+        `}
       </div>
     `;
     card.querySelector(".tile-name").textContent = timer.name;
+    const nameInput = card.querySelector(".temp-name-input");
+    nameInput.dataset.timerId = timer.id;
+    nameInput.value = temporaryNames.get(timer.id) || "";
+    nameInput.addEventListener("input", () => {
+      const value = nameInput.value.trim();
+
+      if (value) {
+        temporaryNames.set(timer.id, nameInput.value);
+      } else {
+        temporaryNames.delete(timer.id);
+      }
+    });
     card.querySelector(".toggle-timer").addEventListener("click", () => {
       changeTimerFor(timer.id, timer.running ? "stop" : "start");
+    });
+    card.querySelector(".subtract-time")?.addEventListener("click", () => {
+      addSecondsFor(timer.id, -5);
+    });
+    card.querySelector(".add-time")?.addEventListener("click", () => {
+      addSecondsFor(timer.id, 5);
     });
     card.querySelector(".reset-timer").addEventListener("click", () => {
       changeTimerFor(timer.id, "reset");
     });
-    els.timerList.append(card);
+
+    if (isProvider) {
+      els.providerList.append(card);
+    } else {
+      els.timerList.append(card);
+    }
+  }
+
+  if (focusedTimerId) {
+    const nextInput = document.querySelector(`.temp-name-input[data-timer-id="${focusedTimerId}"]`);
+
+    if (nextInput) {
+      nextInput.focus();
+      nextInput.setSelectionRange(selectionStart, selectionEnd);
+    }
   }
 }
 

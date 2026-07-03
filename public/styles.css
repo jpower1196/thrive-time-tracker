@@ -127,10 +127,28 @@ input {
 h1 {
   max-width: 100%;
   margin: 0;
-  font-size: 4.35rem;
-  line-height: 1;
+  font-size: clamp(1.45rem, 3vw, 2.2rem);
+  line-height: 1.05;
+  font-style: italic;
+  font-weight: 850;
   letter-spacing: 0;
   white-space: nowrap;
+}
+
+.section-title {
+  max-width: 100%;
+  margin: 0;
+  color: var(--navy);
+  font-size: clamp(1.35rem, 2.6vw, 2rem);
+  font-style: italic;
+  font-weight: 850;
+  line-height: 1.05;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.provider-heading {
+  margin-top: 6px;
 }
 
 .stage-note {
@@ -199,6 +217,13 @@ button:focus-visible {
   box-shadow: var(--soft-shadow);
 }
 
+.provider-board {
+  width: min(900px, 100%);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(232, 247, 250, 0.72));
+  box-shadow: var(--soft-shadow);
+}
+
 .board-heading {
   display: flex;
   justify-content: center;
@@ -235,6 +260,10 @@ button:focus-visible {
   padding-bottom: 0;
 }
 
+.provider-list {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .timer-card {
   width: 100%;
   min-width: 0;
@@ -249,18 +278,100 @@ button:focus-visible {
   cursor: pointer;
   padding: 16px;
   text-align: left;
-  transition: transform 150ms ease, border-color 150ms ease, background 150ms ease;
+  transition: transform 150ms ease, border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
 }
 
 .timer-card.running {
-  border-color: rgba(199, 166, 106, 0.72);
+  border-color: rgba(39, 152, 168, 0.62);
   background:
-    linear-gradient(135deg, rgba(232, 247, 250, 0.9), rgba(255, 250, 241, 0.92));
-  box-shadow: inset 4px 0 0 var(--accent), 0 10px 22px rgba(8, 20, 51, 0.06);
+    linear-gradient(135deg, rgba(220, 250, 246, 0.98), rgba(255, 250, 241, 0.94));
+  box-shadow:
+    inset 4px 0 0 var(--accent),
+    0 0 0 3px rgba(100, 190, 207, 0.18),
+    0 16px 34px rgba(18, 114, 129, 0.16);
+}
+
+.therapy-card {
+  border-color: rgba(100, 190, 207, 0.34);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(232, 247, 250, 0.72));
+  box-shadow: inset 4px 0 0 rgba(100, 190, 207, 0.58), 0 10px 22px rgba(18, 114, 129, 0.06);
+}
+
+.therapy-card.running {
+  border-color: rgba(39, 152, 168, 0.68);
+  background:
+    linear-gradient(135deg, rgba(219, 250, 246, 0.98), rgba(255, 250, 241, 0.94));
+  box-shadow:
+    inset 4px 0 0 var(--accent),
+    0 0 0 3px rgba(100, 190, 207, 0.18),
+    0 16px 34px rgba(18, 114, 129, 0.16);
+}
+
+.therapy-card.therapy-caution,
+.therapy-card.therapy-caution.running {
+  border-color: rgba(199, 166, 106, 0.5);
+  background:
+    linear-gradient(135deg, rgba(255, 252, 244, 0.98), rgba(241, 223, 189, 0.58));
+  box-shadow: inset 4px 0 0 rgba(199, 166, 106, 0.72), 0 10px 22px rgba(199, 166, 106, 0.08);
+}
+
+.therapy-card.therapy-urgent,
+.therapy-card.therapy-urgent.running {
+  border-color: rgba(169, 71, 56, 0.34);
+  background:
+    linear-gradient(135deg, rgba(255, 248, 246, 0.98), rgba(241, 165, 160, 0.28));
+  box-shadow: inset 4px 0 0 rgba(169, 71, 56, 0.52), 0 10px 22px rgba(169, 71, 56, 0.07);
 }
 
 .timer-card:nth-child(6) {
   grid-column: 2;
+}
+
+.provider-list .timer-card:nth-child(6) {
+  grid-column: auto;
+}
+
+.provider-card {
+  background:
+    linear-gradient(135deg, rgba(246, 255, 249, 0.98), rgba(89, 199, 120, 0.16));
+  border-color: rgba(33, 132, 68, 0.24);
+  box-shadow: inset 4px 0 0 rgba(89, 199, 120, 0.58), 0 10px 22px rgba(33, 132, 68, 0.06);
+}
+
+.provider-card.running {
+  border-color: rgba(33, 132, 68, 0.24);
+  background:
+    linear-gradient(135deg, rgba(246, 255, 249, 0.98), rgba(89, 199, 120, 0.16));
+  box-shadow: inset 4px 0 0 rgba(89, 199, 120, 0.58), 0 10px 22px rgba(33, 132, 68, 0.06);
+}
+
+.provider-card.warning {
+  border-color: rgba(199, 166, 106, 0.46);
+  background:
+    linear-gradient(135deg, rgba(255, 252, 241, 0.98), rgba(241, 223, 189, 0.58));
+  box-shadow: inset 4px 0 0 rgba(199, 166, 106, 0.7), 0 10px 22px rgba(199, 166, 106, 0.08);
+}
+
+.provider-card.warning.running {
+  border-color: rgba(199, 166, 106, 0.46);
+  background:
+    linear-gradient(135deg, rgba(255, 252, 241, 0.98), rgba(241, 223, 189, 0.58));
+  box-shadow: inset 4px 0 0 rgba(199, 166, 106, 0.7), 0 10px 22px rgba(199, 166, 106, 0.08);
+}
+
+.provider-card.overdue {
+  border-color: rgba(169, 71, 56, 0.36);
+  background:
+    linear-gradient(135deg, rgba(255, 242, 240, 0.98), rgba(241, 165, 160, 0.34));
+  box-shadow: inset 4px 0 0 rgba(169, 71, 56, 0.6), 0 10px 22px rgba(169, 71, 56, 0.08);
+}
+
+.provider-card.overdue.running {
+  border-color: rgba(169, 71, 56, 0.36);
+  background:
+    linear-gradient(135deg, rgba(255, 242, 240, 0.98), rgba(241, 165, 160, 0.34));
+  box-shadow: inset 4px 0 0 rgba(169, 71, 56, 0.6), 0 10px 22px rgba(169, 71, 56, 0.08);
 }
 
 .card-topline {
@@ -270,20 +381,52 @@ button:focus-visible {
   gap: 12px;
 }
 
-.timer-state {
-  padding: 5px 9px;
+.therapy-card .card-topline {
+  justify-content: center;
+  position: relative;
+}
+
+.therapy-card .tile-dot {
+  position: absolute;
+  right: 0;
+}
+
+.therapy-card .temp-name-input {
+  text-align: center;
+}
+
+.temp-name-input {
+  width: min(130px, 100%);
+  min-width: 0;
+  height: 30px;
   border: 1px solid rgba(100, 190, 207, 0.35);
   border-radius: 999px;
-  background: linear-gradient(135deg, var(--mist), #ffffff);
+  background: linear-gradient(135deg, rgba(232, 247, 250, 0.84), #ffffff);
   color: var(--navy);
   font-size: 0.78rem;
-  font-weight: 900;
+  font-weight: 800;
+  outline: none;
+  padding: 0 10px;
+}
+
+.temp-name-input::placeholder {
+  color: rgba(101, 113, 124, 0.76);
+}
+
+.temp-name-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(100, 190, 207, 0.16);
 }
 
 .tile-main {
   min-width: 0;
   display: grid;
   gap: 4px;
+}
+
+.therapy-card .tile-main {
+  justify-items: center;
+  text-align: center;
 }
 
 .tile-name {
@@ -308,6 +451,10 @@ button:focus-visible {
   font-variant-numeric: tabular-nums;
 }
 
+.therapy-card .tile-time {
+  text-align: center;
+}
+
 .mini-progress {
   height: 10px;
   overflow: hidden;
@@ -325,10 +472,37 @@ button:focus-visible {
   transition: transform 180ms ease;
 }
 
+.wait-progress span {
+  background: linear-gradient(90deg, var(--champagne), var(--accent), var(--teal-deep));
+}
+
+.provider-card.overdue .wait-progress span {
+  background: linear-gradient(90deg, #f1a5a0, var(--danger));
+}
+
 .card-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
+}
+
+.provider-card .card-actions {
+  grid-template-columns: 1fr 1fr;
+}
+
+.time-adjustments {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.adjust-time {
+  justify-self: center;
+  min-height: 30px;
+  min-width: 74px;
+  padding: 0 12px;
+  font-size: 0.72rem;
 }
 
 .tile-dot {
@@ -336,11 +510,15 @@ button:focus-visible {
   height: 12px;
   flex: 0 0 auto;
   border-radius: 999px;
-  background: var(--line);
+  background: #f1a5a0;
+  border: 1px solid rgba(169, 71, 56, 0.32);
+  box-shadow: 0 0 0 4px rgba(169, 71, 56, 0.08);
 }
 
 .timer-card.running .tile-dot {
-  background: radial-gradient(circle at 35% 35%, #ffffff, var(--accent) 45%, var(--teal-deep));
+  background: #59c778;
+  border-color: rgba(33, 132, 68, 0.36);
+  box-shadow: 0 0 0 4px rgba(33, 132, 68, 0.1);
 }
 
 @media (max-width: 900px) {
@@ -364,9 +542,17 @@ button:focus-visible {
     padding-bottom: 4px;
   }
 
+  .provider-list {
+    grid-template-columns: repeat(3, minmax(180px, 1fr));
+  }
+
   h1 {
-    font-size: 3rem;
+    font-size: clamp(1.35rem, 5vw, 1.9rem);
     max-width: 100%;
+  }
+
+  .section-title {
+    font-size: clamp(1.3rem, 4.5vw, 1.8rem);
   }
 }
 
@@ -384,7 +570,11 @@ button:focus-visible {
   }
 
   h1 {
-    font-size: 2rem;
+    font-size: 1.25rem;
+  }
+
+  .section-title {
+    font-size: 1.2rem;
   }
 }
 
@@ -413,7 +603,11 @@ button:focus-visible {
   }
 
   h1 {
-    font-size: clamp(1.55rem, 6vw, 2.2rem);
+    font-size: clamp(1.15rem, 4.4vw, 1.55rem);
+  }
+
+  .section-title {
+    font-size: clamp(1.1rem, 4.2vw, 1.45rem);
   }
 
   .timer-board {
@@ -428,19 +622,24 @@ button:focus-visible {
     padding-bottom: 0;
   }
 
+  .provider-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
   .timer-card {
     min-height: 150px;
     gap: 7px;
     padding: 8px 5px;
   }
 
-  .timer-state,
+  .temp-name-input,
   .tile-meta {
     font-size: 0.62rem;
   }
 
-  .timer-state {
-    padding: 3px 4px;
+  .temp-name-input {
+    height: 25px;
+    padding: 0 6px;
   }
 
   .tile-dot {
