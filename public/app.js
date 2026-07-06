@@ -9,6 +9,10 @@ let state = {
 };
 
 const temporaryNames = new Map();
+const NAME_HISTORY_KEY = "thriveTimerNameHistory";
+const nameSuggestions = document.createElement("datalist");
+nameSuggestions.id = "nameSuggestions";
+document.body.append(nameSuggestions);
 
 function actor() {
   return "Site visitor";
@@ -32,6 +36,42 @@ function timerMeta(timer) {
   }
 
   return `${formatMinutes(timer.durationMs)} min session`;
+}
+
+function loadNameHistory() {
+  try {
+    const names = JSON.parse(localStorage.getItem(NAME_HISTORY_KEY) || "[]");
+    return Array.isArray(names) ? names.filter(Boolean).slice(0, 40) : [];
+  } catch (error) {
+    return [];
+  }
+}
+
+function saveNameHistory(names) {
+  localStorage.setItem(NAME_HISTORY_KEY, JSON.stringify(names.slice(0, 40)));
+}
+
+function addNameSuggestion(name) {
+  const cleanName = String(name || "").trim();
+
+  if (!cleanName) {
+    return;
+  }
+
+  const names = loadNameHistory().filter((item) => item.toLowerCase() !== cleanName.toLowerCase());
+  names.unshift(cleanName.slice(0, 32));
+  saveNameHistory(names);
+  renderNameSuggestions();
+}
+
+function renderNameSuggestions() {
+  nameSuggestions.innerHTML = "";
+
+  for (const name of loadNameHistory()) {
+    const option = document.createElement("option");
+    option.value = name;
+    nameSuggestions.append(option);
+  }
 }
 
 async function requestJson(url, options = {}) {
@@ -134,7 +174,7 @@ function renderTimerList() {
     card.dataset.id = timer.id;
     card.innerHTML = `
       <div class="card-topline">
-        <input class="temp-name-input" type="text" maxlength="32" placeholder="Name" aria-label="Temporary name for ${timer.name}">
+        <input class="temp-name-input" type="text" maxlength="32" list="nameSuggestions" placeholder="Name" aria-label="Temporary name for ${timer.name}">
         <span class="tile-dot" aria-hidden="true"></span>
       </div>
       ${isProvider ? "" : `
@@ -173,6 +213,12 @@ function renderTimerList() {
       } else {
         temporaryNames.delete(timer.id);
       }
+    });
+    nameInput.addEventListener("change", () => {
+      addNameSuggestion(nameInput.value);
+    });
+    nameInput.addEventListener("blur", () => {
+      addNameSuggestion(nameInput.value);
     });
     card.querySelector(".toggle-timer").addEventListener("click", () => {
       changeTimerFor(timer.id, timer.running ? "stop" : "start");
@@ -216,6 +262,7 @@ function connectEvents() {
   });
 }
 
+renderNameSuggestions();
 renderTimerList();
 connectEvents();
 connectKeypadShortcuts();
