@@ -34,6 +34,7 @@ function createTimer(name = "Bed 1", minutes = 10, id = null, mode = "countdown"
     group,
     durationMs,
     remainingMs: mode === "countup" ? 0 : durationMs,
+    flare: false,
     running: false,
     startedAt: null,
     updatedAt: Date.now(),
@@ -70,6 +71,7 @@ function loadState() {
         group: String(timer.group || "therapy"),
         durationMs: Math.max(0, Number(timer.durationMs) || 0),
         remainingMs: Math.max(0, Number(timer.remainingMs) || 0),
+        flare: Boolean(timer.flare),
         running: Boolean(timer.running),
         startedAt: timer.startedAt ? Number(timer.startedAt) : null,
         updatedAt: Number(timer.updatedAt) || Date.now(),
@@ -100,6 +102,7 @@ function normalizeFixedState(inputState) {
       name: preset.name,
       mode: preset.mode,
       group: preset.group,
+      flare: Boolean(existing.flare),
       durationMs,
       remainingMs: preset.mode === "countup" ? savedMs : Math.min(savedMs || durationMs, durationMs)
     };
@@ -171,6 +174,7 @@ function publicTimer(timer) {
     name: timer.name,
     mode: timer.mode,
     group: timer.group,
+    flare: Boolean(timer.flare),
     durationMs: timer.durationMs,
     remainingMs: currentTimerMs(timer),
     running: timer.running,
@@ -240,6 +244,10 @@ function applyTimerChange(timer, action, seconds, actor) {
     timer.remainingMs = nextDuration;
     timer.running = false;
     timer.startedAt = null;
+  }
+
+  if (action === "flare") {
+    timer.flare = !timer.flare;
   }
 
   timer.updatedAt = Date.now();
@@ -410,7 +418,7 @@ const server = http.createServer(async (request, response) => {
       const action = String(body.action || "");
       const seconds = Number(body.seconds || 0);
       const actor = String(body.actor || "").trim().slice(0, 40);
-      const allowedActions = new Set(["start", "stop", "reset", "add", "set"]);
+      const allowedActions = new Set(["start", "stop", "reset", "add", "set", "flare"]);
 
       if (!allowedActions.has(action) || !Number.isFinite(seconds)) {
         response.writeHead(400, { "Content-Type": "application/json; charset=utf-8" });

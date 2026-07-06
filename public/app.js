@@ -77,6 +77,37 @@ async function addSecondsFor(timerId, seconds) {
   });
 }
 
+function therapyTimers() {
+  return state.timers.filter((timer) => timer.group !== "provider");
+}
+
+function isTypingTarget(element) {
+  return element?.matches?.("input, textarea, select, [contenteditable='true']");
+}
+
+function connectKeypadShortcuts() {
+  document.addEventListener("keydown", (event) => {
+    if (event.repeat || isTypingTarget(document.activeElement)) {
+      return;
+    }
+
+    const keypadMatch = event.code.match(/^Numpad([1-8])$/);
+    const numberMatch = event.code.match(/^Digit([1-8])$/);
+    const timerIndex = Number(keypadMatch?.[1] || numberMatch?.[1] || 0) - 1;
+
+    if (timerIndex < 0) {
+      return;
+    }
+
+    const timer = therapyTimers()[timerIndex];
+
+    if (timer) {
+      event.preventDefault();
+      changeTimerFor(timer.id, "start");
+    }
+  });
+}
+
 function renderTimerList() {
   const focusedInput = document.activeElement?.classList?.contains("temp-name-input")
     ? document.activeElement
@@ -106,6 +137,9 @@ function renderTimerList() {
         <input class="temp-name-input" type="text" maxlength="32" placeholder="Name" aria-label="Temporary name for ${timer.name}">
         <span class="tile-dot" aria-hidden="true"></span>
       </div>
+      <button class="flare-toggle${timer.flare ? " active" : ""}" type="button" aria-pressed="${timer.flare}" aria-label="Toggle flare-up alert for ${timer.name}">
+        <span aria-hidden="true">🔥</span>
+      </button>
       <div class="tile-main">
         <h3 class="tile-name"></h3>
         <span class="tile-meta">${timerMeta(timer)}</span>
@@ -140,6 +174,9 @@ function renderTimerList() {
     });
     card.querySelector(".toggle-timer").addEventListener("click", () => {
       changeTimerFor(timer.id, timer.running ? "stop" : "start");
+    });
+    card.querySelector(".flare-toggle").addEventListener("click", () => {
+      changeTimerFor(timer.id, "flare");
     });
     card.querySelector(".subtract-time")?.addEventListener("click", () => {
       addSecondsFor(timer.id, -5);
@@ -179,3 +216,4 @@ function connectEvents() {
 
 renderTimerList();
 connectEvents();
+connectKeypadShortcuts();
