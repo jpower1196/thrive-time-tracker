@@ -421,7 +421,7 @@ button:focus-visible {
 
 .flare-toggle {
   position: absolute;
-  right: 20px;
+  left: 20px;
   bottom: 20px;
   display: grid;
   place-items: center;

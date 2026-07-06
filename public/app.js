@@ -137,9 +137,11 @@ function renderTimerList() {
         <input class="temp-name-input" type="text" maxlength="32" placeholder="Name" aria-label="Temporary name for ${timer.name}">
         <span class="tile-dot" aria-hidden="true"></span>
       </div>
-      <button class="flare-toggle${timer.flare ? " active" : ""}" type="button" aria-pressed="${timer.flare}" aria-label="Toggle flare-up alert for ${timer.name}">
-        <span aria-hidden="true">🔥</span>
-      </button>
+      ${isProvider ? "" : `
+        <button class="flare-toggle${timer.flare ? " active" : ""}" type="button" aria-pressed="${timer.flare}" aria-label="Toggle flare-up alert for ${timer.name}">
+          <span aria-hidden="true">🔥</span>
+        </button>
+      `}
       <div class="tile-main">
         <h3 class="tile-name"></h3>
         <span class="tile-meta">${timerMeta(timer)}</span>
@@ -175,7 +177,7 @@ function renderTimerList() {
     card.querySelector(".toggle-timer").addEventListener("click", () => {
       changeTimerFor(timer.id, timer.running ? "stop" : "start");
     });
-    card.querySelector(".flare-toggle").addEventListener("click", () => {
+    card.querySelector(".flare-toggle")?.addEventListener("click", () => {
       changeTimerFor(timer.id, "flare");
     });
     card.querySelector(".subtract-time")?.addEventListener("click", () => {
