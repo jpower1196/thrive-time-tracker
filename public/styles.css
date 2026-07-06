@@ -88,6 +88,14 @@ input {
   position: relative;
 }
 
+.brand-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
 .brand-lockup {
   width: min(430px, 100%);
   height: 190px;
@@ -107,6 +115,40 @@ input {
   width: 130%;
   height: auto;
   max-width: none;
+}
+
+.session-counter {
+  position: absolute;
+  top: 50%;
+  left: calc(50% + 250px);
+  transform: translateY(-50%);
+  width: 132px;
+  min-height: 78px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 4px;
+  padding: 12px 10px;
+  border: 1px solid rgba(199, 166, 106, 0.44);
+  border-radius: 8px;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(255, 250, 241, 0.9));
+  box-shadow: 0 12px 28px rgba(8, 20, 51, 0.08);
+}
+
+.session-counter-value {
+  color: var(--teal-deep);
+  font-size: 1.45rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.session-counter-label {
+  color: var(--navy);
+  font-size: 0.68rem;
+  font-weight: 850;
+  line-height: 1.15;
+  text-transform: uppercase;
 }
 
 .stage-copy {
@@ -421,7 +463,7 @@ button:focus-visible {
 
 .flare-toggle {
   position: absolute;
-  left: 20px;
+  left: 10px;
   bottom: 20px;
   display: grid;
   place-items: center;
@@ -527,15 +569,16 @@ button:focus-visible {
 .time-adjustments {
   grid-column: 1 / -1;
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .adjust-time {
   justify-self: center;
   min-height: 30px;
-  min-width: 74px;
-  padding: 0 12px;
+  min-width: 56px;
+  padding: 0 9px;
   font-size: 0.72rem;
 }
 
@@ -603,6 +646,11 @@ button:focus-visible {
     height: 170px;
   }
 
+  .session-counter {
+    left: calc(50% + 230px);
+    width: 120px;
+  }
+
   h1 {
     font-size: 1.25rem;
   }
@@ -626,6 +674,20 @@ button:focus-visible {
   .brand-lockup {
     width: min(320px, 100%);
     height: 122px;
+  }
+
+  .brand-row {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .session-counter {
+    position: static;
+    transform: none;
+    width: min(180px, 100%);
+    min-height: 58px;
+    grid-template-columns: auto auto;
+    gap: 8px;
   }
 
   .stage-copy {

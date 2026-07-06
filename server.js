@@ -34,6 +34,7 @@ function createTimer(name = "Bed 1", minutes = 10, id = null, mode = "countdown"
     group,
     durationMs,
     remainingMs: mode === "countup" ? 0 : durationMs,
+    patientName: "",
     flare: false,
     running: false,
     startedAt: null,
@@ -49,6 +50,7 @@ function defaultState() {
 
   return {
     activeTimerId: timers[0].id,
+    totalSessionsTracked: 0,
     timers
   };
 }
@@ -64,6 +66,7 @@ function loadState() {
 
     return normalizeFixedState({
       activeTimerId: parsed.activeTimerId || parsed.timers[0].id,
+      totalSessionsTracked: Math.max(0, Number(parsed.totalSessionsTracked) || 0),
       timers: parsed.timers.map((timer) => ({
         id: String(timer.id || createTimer().id),
         name: String(timer.name || "Timer").trim().slice(0, 80) || "Timer",
@@ -71,6 +74,7 @@ function loadState() {
         group: String(timer.group || "therapy"),
         durationMs: Math.max(0, Number(timer.durationMs) || 0),
         remainingMs: Math.max(0, Number(timer.remainingMs) || 0),
+        patientName: String(timer.patientName || "").trim().slice(0, 32),
         flare: Boolean(timer.flare),
         running: Boolean(timer.running),
         startedAt: timer.startedAt ? Number(timer.startedAt) : null,
@@ -102,6 +106,7 @@ function normalizeFixedState(inputState) {
       name: preset.name,
       mode: preset.mode,
       group: preset.group,
+      patientName: String(existing.patientName || "").trim().slice(0, 32),
       flare: Boolean(existing.flare),
       durationMs,
       remainingMs: preset.mode === "countup" ? savedMs : Math.min(savedMs || durationMs, durationMs)
@@ -112,6 +117,7 @@ function normalizeFixedState(inputState) {
     activeTimerId: timers.some((timer) => timer.id === inputState.activeTimerId)
       ? inputState.activeTimerId
       : timers[0].id,
+    totalSessionsTracked: Math.max(0, Number(inputState.totalSessionsTracked) || 0),
     timers
   };
 }
@@ -151,6 +157,7 @@ function normalizeTimers() {
     if (timer.mode !== "countup" && timer.running && remainingMs <= 0) {
       timer.running = false;
       timer.remainingMs = 0;
+      timer.patientName = "";
       timer.startedAt = null;
       timer.updatedAt = Date.now();
       timer.changedBy = "Timer";
@@ -174,6 +181,7 @@ function publicTimer(timer) {
     name: timer.name,
     mode: timer.mode,
     group: timer.group,
+    patientName: timer.patientName || "",
     flare: Boolean(timer.flare),
     durationMs: timer.durationMs,
     remainingMs: currentTimerMs(timer),
@@ -188,6 +196,7 @@ function snapshot() {
 
   return {
     activeTimerId: state.activeTimerId,
+    totalSessionsTracked: state.totalSessionsTracked || 0,
     timers: state.timers.map(publicTimer)
   };
 }
@@ -210,8 +219,13 @@ function broadcast() {
 
 function applyTimerChange(timer, action, seconds, actor) {
   const current = currentTimerMs(timer);
+  const wasRunning = timer.running;
 
   if (action === "start") {
+    if (!wasRunning && timer.group === "therapy") {
+      state.totalSessionsTracked = Math.max(0, Number(state.totalSessionsTracked) || 0) + 1;
+    }
+
     timer.remainingMs = timer.mode === "countup" || timer.running
       ? current
       : timer.durationMs;
@@ -227,6 +241,7 @@ function applyTimerChange(timer, action, seconds, actor) {
 
   if (action === "reset") {
     timer.remainingMs = timer.mode === "countup" ? 0 : timer.durationMs;
+    timer.patientName = "";
     timer.running = false;
     timer.startedAt = null;
   }
@@ -258,10 +273,15 @@ function applyTimerChange(timer, action, seconds, actor) {
 
 function updateTimerDetails(timer, body, actor) {
   const name = String(body.name || "").trim();
+  const patientName = String(body.patientName || "").trim();
   const seconds = Number(body.seconds);
 
   if (name) {
     timer.name = name.slice(0, 80);
+  }
+
+  if ("patientName" in body) {
+    timer.patientName = patientName.slice(0, 32);
   }
 
   if (Number.isFinite(seconds)) {

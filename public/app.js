@@ -1,18 +1,17 @@
 const els = {
   timerList: document.querySelector("#timerList"),
-  providerList: document.querySelector("#providerList")
+  providerList: document.querySelector("#providerList"),
+  totalSessions: document.querySelector("#totalSessions")
 };
 
 let state = {
   activeTimerId: null,
+  totalSessionsTracked: 0,
   timers: []
 };
 
 const temporaryNames = new Map();
-const NAME_HISTORY_KEY = "thriveTimerNameHistory";
-const nameSuggestions = document.createElement("datalist");
-nameSuggestions.id = "nameSuggestions";
-document.body.append(nameSuggestions);
+const patientNameTimers = new Map();
 
 function actor() {
   return "Site visitor";
@@ -38,42 +37,6 @@ function timerMeta(timer) {
   return `${formatMinutes(timer.durationMs)} min session`;
 }
 
-function loadNameHistory() {
-  try {
-    const names = JSON.parse(localStorage.getItem(NAME_HISTORY_KEY) || "[]");
-    return Array.isArray(names) ? names.filter(Boolean).slice(0, 40) : [];
-  } catch (error) {
-    return [];
-  }
-}
-
-function saveNameHistory(names) {
-  localStorage.setItem(NAME_HISTORY_KEY, JSON.stringify(names.slice(0, 40)));
-}
-
-function addNameSuggestion(name) {
-  const cleanName = String(name || "").trim();
-
-  if (!cleanName) {
-    return;
-  }
-
-  const names = loadNameHistory().filter((item) => item.toLowerCase() !== cleanName.toLowerCase());
-  names.unshift(cleanName.slice(0, 32));
-  saveNameHistory(names);
-  renderNameSuggestions();
-}
-
-function renderNameSuggestions() {
-  nameSuggestions.innerHTML = "";
-
-  for (const name of loadNameHistory()) {
-    const option = document.createElement("option");
-    option.value = name;
-    nameSuggestions.append(option);
-  }
-}
-
 async function requestJson(url, options = {}) {
   const response = await fetch(url, {
     headers: {
@@ -91,8 +54,39 @@ async function requestJson(url, options = {}) {
   renderTimerList();
 }
 
+async function updatePatientNameFor(timerId, patientName) {
+  await requestJson(`/api/timers/${timerId}`, {
+    method: "PATCH",
+    body: JSON.stringify({
+      patientName,
+      actor: actor()
+    })
+  });
+
+  if (temporaryNames.get(timerId) === patientName) {
+    temporaryNames.delete(timerId);
+    renderTimerList();
+  }
+}
+
+function queuePatientNameUpdate(timerId, patientName) {
+  clearTimeout(patientNameTimers.get(timerId));
+  patientNameTimers.set(timerId, setTimeout(() => {
+    patientNameTimers.delete(timerId);
+    updatePatientNameFor(timerId, patientName);
+  }, 250));
+}
+
+function flushPatientNameUpdate(timerId, patientName) {
+  clearTimeout(patientNameTimers.get(timerId));
+  patientNameTimers.delete(timerId);
+  updatePatientNameFor(timerId, patientName);
+}
+
 async function changeTimerFor(timerId, action) {
   if (action === "reset") {
+    clearTimeout(patientNameTimers.get(timerId));
+    patientNameTimers.delete(timerId);
     temporaryNames.delete(timerId);
   }
 
@@ -158,6 +152,7 @@ function renderTimerList() {
 
   els.timerList.innerHTML = "";
   els.providerList.innerHTML = "";
+  els.totalSessions.textContent = String(state.totalSessionsTracked || 0);
 
   for (const timer of state.timers) {
     const card = document.createElement("article");
@@ -174,7 +169,7 @@ function renderTimerList() {
     card.dataset.id = timer.id;
     card.innerHTML = `
       <div class="card-topline">
-        <input class="temp-name-input" type="text" maxlength="32" list="nameSuggestions" placeholder="Name" aria-label="Temporary name for ${timer.name}">
+        <input class="temp-name-input" type="text" maxlength="32" placeholder="Name" aria-label="Patient name for ${timer.name}">
         <span class="tile-dot" aria-hidden="true"></span>
       </div>
       ${isProvider ? "" : `
@@ -195,6 +190,7 @@ function renderTimerList() {
         <button class="button compact reset-timer" type="button">Reset</button>
         ${isProvider ? "" : `
           <div class="time-adjustments">
+            <button class="button compact adjust-time subtract-ten-time" type="button">-10s</button>
             <button class="button compact adjust-time subtract-time" type="button">-5s</button>
             <button class="button compact adjust-time add-time" type="button">+5s</button>
           </div>
@@ -204,27 +200,32 @@ function renderTimerList() {
     card.querySelector(".tile-name").textContent = timer.name;
     const nameInput = card.querySelector(".temp-name-input");
     nameInput.dataset.timerId = timer.id;
-    nameInput.value = temporaryNames.get(timer.id) || "";
+    nameInput.value = temporaryNames.has(timer.id) ? temporaryNames.get(timer.id) : timer.patientName || "";
     nameInput.addEventListener("input", () => {
-      const value = nameInput.value.trim();
+      const value = nameInput.value;
 
-      if (value) {
+      if (value.trim()) {
         temporaryNames.set(timer.id, nameInput.value);
       } else {
         temporaryNames.delete(timer.id);
       }
+
+      queuePatientNameUpdate(timer.id, value);
     });
     nameInput.addEventListener("change", () => {
-      addNameSuggestion(nameInput.value);
+      flushPatientNameUpdate(timer.id, nameInput.value);
     });
     nameInput.addEventListener("blur", () => {
-      addNameSuggestion(nameInput.value);
+      flushPatientNameUpdate(timer.id, nameInput.value);
     });
     card.querySelector(".toggle-timer").addEventListener("click", () => {
       changeTimerFor(timer.id, timer.running ? "stop" : "start");
     });
     card.querySelector(".flare-toggle")?.addEventListener("click", () => {
       changeTimerFor(timer.id, "flare");
+    });
+    card.querySelector(".subtract-ten-time")?.addEventListener("click", () => {
+      addSecondsFor(timer.id, -10);
     });
     card.querySelector(".subtract-time")?.addEventListener("click", () => {
       addSecondsFor(timer.id, -5);
@@ -262,7 +263,6 @@ function connectEvents() {
   });
 }
 
-renderNameSuggestions();
 renderTimerList();
 connectEvents();
 connectKeypadShortcuts();
