@@ -1,6 +1,6 @@
 {
   "activeTimerId": "bed-1",
-  "totalSessionsTracked": 0,
+  "totalSessionsTracked": 17,
   "timers": [
     {
       "id": "bed-1",
@@ -13,8 +13,8 @@
       "flare": false,
       "running": false,
       "startedAt": null,
-      "updatedAt": 1783308084740,
-      "changedBy": "Codex check"
+      "updatedAt": 1783380881136,
+      "changedBy": "Site visitor"
     },
     {
       "id": "bed-2",
@@ -27,8 +27,8 @@
       "flare": false,
       "running": false,
       "startedAt": null,
-      "updatedAt": 1782958937281,
-      "changedBy": "System"
+      "updatedAt": 1783380832762,
+      "changedBy": "Site visitor"
     },
     {
       "id": "bed-3",

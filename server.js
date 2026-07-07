@@ -7,6 +7,7 @@ const PORT = Number(process.env.PORT || 4173);
 const PUBLIC_DIR = path.join(__dirname, "public");
 const DATA_DIR = path.join(__dirname, "data");
 const DATA_FILE = path.join(DATA_DIR, "timers.json");
+const SESSION_TOTAL_FILE = path.join(DATA_DIR, "session-total.json");
 
 const clients = new Set();
 
@@ -23,6 +24,16 @@ const TIMER_PRESETS = [
   { id: "room-2", name: "Room 2", minutes: 0, mode: "countup", group: "provider" },
   { id: "room-3", name: "Room 3", minutes: 0, mode: "countup", group: "provider" }
 ];
+
+function storedSessionTotal() {
+  try {
+    const parsed = JSON.parse(fs.readFileSync(SESSION_TOTAL_FILE, "utf8"));
+    const total = typeof parsed === "number" ? parsed : parsed.totalSessionsTracked;
+    return Math.max(0, Number(total) || 0);
+  } catch (error) {
+    return 0;
+  }
+}
 
 function createTimer(name = "Bed 1", minutes = 10, id = null, mode = "countdown", group = "therapy") {
   const durationMs = Math.max(0, Number(minutes) || 0) * 60 * 1000;
@@ -50,7 +61,7 @@ function defaultState() {
 
   return {
     activeTimerId: timers[0].id,
-    totalSessionsTracked: 0,
+    totalSessionsTracked: storedSessionTotal(),
     timers
   };
 }
@@ -66,7 +77,10 @@ function loadState() {
 
     return normalizeFixedState({
       activeTimerId: parsed.activeTimerId || parsed.timers[0].id,
-      totalSessionsTracked: Math.max(0, Number(parsed.totalSessionsTracked) || 0),
+      totalSessionsTracked: Math.max(
+        storedSessionTotal(),
+        Math.max(0, Number(parsed.totalSessionsTracked) || 0)
+      ),
       timers: parsed.timers.map((timer) => ({
         id: String(timer.id || createTimer().id),
         name: String(timer.name || "Timer").trim().slice(0, 80) || "Timer",
@@ -127,6 +141,9 @@ let state = normalizeFixedState(loadState());
 function saveState() {
   fs.mkdirSync(DATA_DIR, { recursive: true });
   fs.writeFileSync(DATA_FILE, JSON.stringify(state, null, 2));
+  fs.writeFileSync(SESSION_TOTAL_FILE, JSON.stringify({
+    totalSessionsTracked: Math.max(0, Number(state.totalSessionsTracked) || 0)
+  }, null, 2));
 }
 
 function currentTimerMs(timer) {
@@ -231,6 +248,22 @@ function applyTimerChange(timer, action, seconds, actor) {
       : timer.durationMs;
     timer.running = true;
     timer.startedAt = Date.now();
+  }
+
+  if (action === "restart") {
+    if (timer.group === "therapy") {
+      state.totalSessionsTracked = Math.max(0, Number(state.totalSessionsTracked) || 0) + 1;
+    }
+
+    timer.remainingMs = timer.mode === "countup" ? 0 : timer.durationMs;
+    timer.running = true;
+    timer.startedAt = Date.now();
+  }
+
+  if (action === "prepare") {
+    timer.remainingMs = timer.mode === "countup" ? 0 : timer.durationMs;
+    timer.running = false;
+    timer.startedAt = null;
   }
 
   if (action === "stop") {
@@ -438,7 +471,7 @@ const server = http.createServer(async (request, response) => {
       const action = String(body.action || "");
       const seconds = Number(body.seconds || 0);
       const actor = String(body.actor || "").trim().slice(0, 40);
-      const allowedActions = new Set(["start", "stop", "reset", "add", "set", "flare"]);
+      const allowedActions = new Set(["start", "restart", "prepare", "stop", "reset", "add", "set", "flare"]);
 
       if (!allowedActions.has(action) || !Number.isFinite(seconds)) {
         response.writeHead(400, { "Content-Type": "application/json; charset=utf-8" });

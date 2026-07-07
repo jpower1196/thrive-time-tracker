@@ -1,6 +1,7 @@
 const els = {
   timerList: document.querySelector("#timerList"),
   providerList: document.querySelector("#providerList"),
+  quickAlertFeed: document.querySelector("#quickAlertFeed"),
   totalSessions: document.querySelector("#totalSessions")
 };
 
@@ -12,6 +13,7 @@ let state = {
 
 const temporaryNames = new Map();
 const patientNameTimers = new Map();
+const patientNameLastSent = new Map();
 
 function actor() {
   return "Site visitor";
@@ -37,6 +39,48 @@ function timerMeta(timer) {
   return `${formatMinutes(timer.durationMs)} min session`;
 }
 
+function bedNumber(timer) {
+  return timer.name.match(/^Bed\s+(\d+)$/i)?.[1] || null;
+}
+
+function bedAlertLabel(timer) {
+  const patientName = timer.patientName?.trim();
+  const number = bedNumber(timer);
+
+  return patientName || `Patient on bed ${number}`;
+}
+
+function sentenceList(items) {
+  if (items.length <= 1) {
+    return items[0] || "";
+  }
+
+  if (items.length === 2) {
+    return `${items[0]} and ${items[1]}`;
+  }
+
+  return `${items.slice(0, -1).join(", ")}, and ${items.at(-1)}`;
+}
+
+function quickAlertMessage() {
+  const bedTimers = state.timers.filter((timer) => bedNumber(timer));
+  const finishingTimers = bedTimers
+    .filter((timer) => timer.running && timer.remainingMs > 0 && timer.remainingMs <= 60 * 1000)
+    .sort((a, b) => a.remainingMs - b.remainingMs);
+  const flareTimers = bedTimers.filter((timer) => timer.flare);
+  const messages = [];
+
+  if (finishingTimers.length > 0) {
+    messages.push(`${sentenceList(finishingTimers.map(bedAlertLabel))} will be coming back to the treatment room shortly.`);
+  }
+
+  if (flareTimers.length > 0) {
+    messages.push(`Flare-up indicated: ${sentenceList(flareTimers.map(bedAlertLabel))}.`);
+  }
+
+  return messages.join(" ") || "No bed sessions finishing soon";
+}
+
 async function requestJson(url, options = {}) {
   const response = await fetch(url, {
     headers: {
@@ -55,7 +99,16 @@ async function requestJson(url, options = {}) {
 }
 
 async function updatePatientNameFor(timerId, patientName) {
-  await requestJson(`/api/timers/${timerId}`, {
+  if (patientNameLastSent.get(timerId) === patientName) {
+    return;
+  }
+
+  patientNameLastSent.set(timerId, patientName);
+
+  const response = await fetch(`/api/timers/${timerId}`, {
+    headers: {
+      "Content-Type": "application/json"
+    },
     method: "PATCH",
     body: JSON.stringify({
       patientName,
@@ -63,18 +116,28 @@ async function updatePatientNameFor(timerId, patientName) {
     })
   });
 
-  if (temporaryNames.get(timerId) === patientName) {
+  if (!response.ok) {
+    throw new Error("Name update failed.");
+  }
+
+  const nextState = await response.json();
+  state = nextState;
+
+  if (temporaryNames.get(timerId) === patientName && document.activeElement?.dataset?.timerId !== timerId) {
     temporaryNames.delete(timerId);
-    renderTimerList();
   }
 }
 
 function queuePatientNameUpdate(timerId, patientName) {
+  if (patientNameLastSent.get(timerId) === patientName) {
+    return;
+  }
+
   clearTimeout(patientNameTimers.get(timerId));
   patientNameTimers.set(timerId, setTimeout(() => {
     patientNameTimers.delete(timerId);
     updatePatientNameFor(timerId, patientName);
-  }, 250));
+  }, 800));
 }
 
 function flushPatientNameUpdate(timerId, patientName) {
@@ -115,6 +178,10 @@ function therapyTimers() {
   return state.timers.filter((timer) => timer.group !== "provider");
 }
 
+function isTimerAtFullTime(timer) {
+  return Math.abs(timer.durationMs - timer.remainingMs) < 1000;
+}
+
 function isTypingTarget(element) {
   return element?.matches?.("input, textarea, select, [contenteditable='true']");
 }
@@ -137,7 +204,7 @@ function connectKeypadShortcuts() {
 
     if (timer) {
       event.preventDefault();
-      changeTimerFor(timer.id, "start");
+      changeTimerFor(timer.id, timer.running || !isTimerAtFullTime(timer) ? "prepare" : "start");
     }
   });
 }
@@ -152,6 +219,7 @@ function renderTimerList() {
 
   els.timerList.innerHTML = "";
   els.providerList.innerHTML = "";
+  els.quickAlertFeed.textContent = quickAlertMessage();
   els.totalSessions.textContent = String(state.totalSessionsTracked || 0);
 
   for (const timer of state.timers) {
