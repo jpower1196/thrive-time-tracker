@@ -117,8 +117,7 @@ input {
   max-width: none;
 }
 
-.quick-alert-feed,
-.session-counter {
+.quick-alert-feed {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
@@ -153,33 +152,6 @@ input {
   font-size: 0.72rem;
   font-weight: 780;
   line-height: 1.25;
-}
-
-.session-counter {
-  left: calc(50% + 250px);
-  width: 132px;
-  min-height: 78px;
-  display: grid;
-  place-items: center;
-  align-content: center;
-  gap: 4px;
-  padding: 12px 10px;
-  border: 1px solid rgba(199, 166, 106, 0.44);
-}
-
-.session-counter-value {
-  color: var(--teal-deep);
-  font-size: 1.45rem;
-  font-weight: 900;
-  line-height: 1;
-}
-
-.session-counter-label {
-  color: var(--navy);
-  font-size: 0.68rem;
-  font-weight: 850;
-  line-height: 1.15;
-  text-transform: uppercase;
 }
 
 .stage-copy {
@@ -290,6 +262,127 @@ button:focus-visible {
   box-shadow: var(--soft-shadow);
 }
 
+.patient-task-panel {
+  position: absolute;
+  left: calc(50% + 250px);
+  top: 50%;
+  transform: translateY(-50%);
+  width: 300px;
+  max-height: 190px;
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid rgba(207, 217, 220, 0.95);
+  border-top: 5px solid rgba(100, 190, 207, 0.48);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(232, 247, 250, 0.58));
+  box-shadow: var(--soft-shadow);
+}
+
+.patient-task-heading h2 {
+  margin: 0;
+  color: var(--navy);
+  font-size: 0.72rem;
+  font-weight: 900;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.patient-list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 7px;
+  max-height: 124px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.patient-focus-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 7px;
+  min-height: 46px;
+  padding: 8px;
+  border: 1px solid rgba(207, 217, 220, 0.92);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.patient-focus-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+  text-align: left;
+}
+
+.patient-focus-copy strong,
+.patient-focus-copy span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.patient-focus-copy strong {
+  color: var(--navy);
+  font-size: 0.88rem;
+}
+
+.patient-focus-copy span,
+.patient-empty {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 750;
+}
+
+.patient-empty {
+  margin: 0;
+  grid-column: 1 / -1;
+}
+
+.patient-bubbles {
+  display: flex;
+  gap: 5px;
+}
+
+.patient-bubble,
+.patient-remove {
+  border: 1px solid rgba(100, 190, 207, 0.34);
+  background: #ffffff;
+  color: var(--navy);
+  cursor: pointer;
+}
+
+.patient-bubble {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  padding: 0;
+  font-size: 0.78rem;
+  filter: grayscale(0.65);
+}
+
+.patient-bubble.active {
+  border-color: rgba(39, 152, 168, 0.72);
+  background: linear-gradient(135deg, var(--mist), rgba(100, 190, 207, 0.28));
+  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.66), 0 6px 14px rgba(18, 114, 129, 0.12);
+  filter: grayscale(0);
+}
+
+.patient-remove {
+  grid-column: 1 / -1;
+  justify-self: end;
+  min-height: 30px;
+  padding: 0 9px;
+  border-radius: 8px;
+  color: var(--danger);
+  font-size: 0.72rem;
+  font-weight: 850;
+}
+
 .provider-board {
   width: min(900px, 100%);
   background:
@@ -398,8 +491,8 @@ button:focus-visible {
   box-shadow: inset 4px 0 0 rgba(169, 71, 56, 0.52), 0 10px 22px rgba(169, 71, 56, 0.07);
 }
 
-.timer-card:nth-child(6) {
-  grid-column: 2;
+.timer-card:nth-child(9) {
+  grid-column: 5;
 }
 
 .provider-list .timer-card:nth-child(6) {
@@ -650,6 +743,15 @@ button:focus-visible {
     padding-bottom: 4px;
   }
 
+  .patient-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .patient-task-panel {
+    left: calc(50% + 230px);
+    width: 250px;
+  }
+
   .provider-list {
     grid-template-columns: repeat(3, minmax(180px, 1fr));
   }
@@ -675,11 +777,6 @@ button:focus-visible {
 
   .brand-lockup {
     height: 170px;
-  }
-
-  .session-counter {
-    left: calc(50% + 230px);
-    width: 120px;
   }
 
   .quick-alert-feed {
@@ -718,7 +815,7 @@ button:focus-visible {
   }
 
   .quick-alert-feed,
-  .session-counter {
+  .patient-task-panel {
     position: static;
     transform: none;
   }
@@ -729,11 +826,13 @@ button:focus-visible {
     text-align: center;
   }
 
-  .session-counter {
-    width: min(180px, 100%);
-    min-height: 58px;
-    grid-template-columns: auto auto;
-    gap: 8px;
+  .patient-task-panel {
+    width: min(320px, 100%);
+    max-height: none;
+  }
+
+  .patient-list {
+    max-height: 180px;
   }
 
   .stage-copy {
@@ -762,6 +861,20 @@ button:focus-visible {
     gap: 6px;
     overflow: visible;
     padding-bottom: 0;
+  }
+
+  .patient-list,
+  .patient-focus-item {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .patient-focus-copy,
+  .patient-task-heading h2 {
+    text-align: center;
+  }
+
+  .patient-bubbles {
+    justify-content: center;
   }
 
   .provider-list {

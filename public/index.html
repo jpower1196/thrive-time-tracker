@@ -14,14 +14,16 @@
             <span class="quick-alert-title">Quick alert</span>
             <span class="quick-alert-message" id="quickAlertFeed">No sessions finishing soon</span>
           </aside>
-          <div class="brand-lockup">
-            <img class="brand-logo" src="/thrive.jpg" alt="Thrive Integrative Health">
-          </div>
-          <aside class="session-counter" aria-label="Total sessions tracked">
-            <span class="session-counter-value" id="totalSessions">0</span>
-            <span class="session-counter-label">Sessions tracked</span>
-          </aside>
+        <div class="brand-lockup">
+          <img class="brand-logo" src="/thrive.jpg" alt="Thrive Integrative Health">
         </div>
+          <section class="patient-task-panel" aria-labelledby="patient-task-title">
+            <div class="patient-task-heading">
+              <h2 id="patient-task-title">Patient Completed Treatments</h2>
+            </div>
+            <div id="patientList" class="patient-list"></div>
+          </section>
+      </div>
 
         <div class="stage-copy">
           <h1 id="timer-title">PHYSIOTHERAPY LIVE TIMERS</h1>
@@ -32,17 +34,6 @@
             <h2 id="timer-board-title">Active timers</h2>
           </div>
           <div id="timerList" class="timer-list"></div>
-        </section>
-
-        <div class="stage-copy provider-heading">
-          <h2 class="section-title">PROVIDER ROOMS</h2>
-        </div>
-
-        <section class="timer-board provider-board" aria-labelledby="provider-board-title">
-          <div class="board-heading">
-            <h2 id="provider-board-title">Waiting to be seen</h2>
-          </div>
-          <div id="providerList" class="timer-list provider-list"></div>
         </section>
 
       </section>

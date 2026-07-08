@@ -1,19 +1,25 @@
 const els = {
   timerList: document.querySelector("#timerList"),
   providerList: document.querySelector("#providerList"),
-  quickAlertFeed: document.querySelector("#quickAlertFeed"),
-  totalSessions: document.querySelector("#totalSessions")
+  patientList: document.querySelector("#patientList"),
+  quickAlertFeed: document.querySelector("#quickAlertFeed")
 };
 
 let state = {
   activeTimerId: null,
   totalSessionsTracked: 0,
+  completedPatients: [],
   timers: []
 };
 
 const temporaryNames = new Map();
 const patientNameTimers = new Map();
 const patientNameLastSent = new Map();
+const patientFocusItems = [
+  { key: "lightning", icon: "⚡", label: "Lightning" },
+  { key: "spine", icon: "🦴", label: "Spine" },
+  { key: "strength", icon: "🏋", label: "Strength" }
+];
 
 function actor() {
   return "Site visitor";
@@ -79,6 +85,42 @@ function quickAlertMessage() {
   }
 
   return messages.join(" ") || "No bed sessions finishing soon";
+}
+
+async function updatePatientChecksFor(item, patientChecks) {
+  const url = item.source === "completed"
+    ? `/api/completed-patients/${item.id}`
+    : `/api/timers/${item.id}`;
+
+  await requestJson(url, {
+    method: "PATCH",
+    body: JSON.stringify({
+      patientChecks,
+      actor: actor()
+    })
+  });
+}
+
+function removePatientFor(item) {
+  if (item.source === "completed") {
+    return requestJson(`/api/completed-patients/${item.id}`, {
+      method: "DELETE"
+    });
+  }
+
+  clearTimeout(patientNameTimers.get(item.id));
+  patientNameTimers.delete(item.id);
+  temporaryNames.delete(item.id);
+  patientNameLastSent.set(item.id, "");
+
+  return requestJson(`/api/timers/${item.id}`, {
+    method: "PATCH",
+    body: JSON.stringify({
+      patientName: "",
+      patientChecks: {},
+      actor: actor()
+    })
+  });
 }
 
 async function requestJson(url, options = {}) {
@@ -175,7 +217,7 @@ async function addSecondsFor(timerId, seconds) {
 }
 
 function therapyTimers() {
-  return state.timers.filter((timer) => timer.group !== "provider");
+  return state.timers.filter((timer) => timer.group === "therapy");
 }
 
 function isTimerAtFullTime(timer) {
@@ -192,8 +234,8 @@ function connectKeypadShortcuts() {
       return;
     }
 
-    const keypadMatch = event.code.match(/^Numpad([1-8])$/);
-    const numberMatch = event.code.match(/^Digit([1-8])$/);
+    const keypadMatch = event.code.match(/^Numpad([1-9])$/);
+    const numberMatch = event.code.match(/^Digit([1-9])$/);
     const timerIndex = Number(keypadMatch?.[1] || numberMatch?.[1] || 0) - 1;
 
     if (timerIndex < 0) {
@@ -218,9 +260,11 @@ function renderTimerList() {
   const selectionEnd = focusedInput?.selectionEnd || selectionStart;
 
   els.timerList.innerHTML = "";
-  els.providerList.innerHTML = "";
+  if (els.providerList) {
+    els.providerList.innerHTML = "";
+  }
   els.quickAlertFeed.textContent = quickAlertMessage();
-  els.totalSessions.textContent = String(state.totalSessionsTracked || 0);
+  renderPatientList();
 
   for (const timer of state.timers) {
     const card = document.createElement("article");
@@ -306,7 +350,7 @@ function renderTimerList() {
     });
 
     if (isProvider) {
-      els.providerList.append(card);
+      els.providerList?.append(card);
     } else {
       els.timerList.append(card);
     }
@@ -319,6 +363,72 @@ function renderTimerList() {
       nextInput.focus();
       nextInput.setSelectionRange(selectionStart, selectionEnd);
     }
+  }
+}
+
+function renderPatientList() {
+  const activePatients = state.timers
+    .filter((timer) => timer.patientName?.trim())
+    .map((timer) => ({
+      id: timer.id,
+      source: "timer",
+      timerName: timer.name,
+      patientName: timer.patientName.trim(),
+      patientChecks: timer.patientChecks || {}
+    }));
+  const completedPatients = (state.completedPatients || []).map((patient) => ({
+    id: patient.id,
+    source: "completed",
+    timerName: patient.timerName,
+    patientName: patient.patientName,
+    patientChecks: patient.patientChecks || {}
+  }));
+  const patientItems = [...activePatients, ...completedPatients];
+
+  els.patientList.innerHTML = "";
+
+  if (patientItems.length === 0) {
+    els.patientList.innerHTML = `<p class="patient-empty">No completed treatments yet</p>`;
+    return;
+  }
+
+  for (const patient of patientItems) {
+    const item = document.createElement("article");
+    const checks = patient.patientChecks || {};
+    item.className = "patient-focus-item";
+    item.innerHTML = `
+      <div class="patient-focus-copy">
+        <strong></strong>
+        <span></span>
+      </div>
+      <div class="patient-bubbles"></div>
+      <button class="patient-remove" type="button">Remove</button>
+    `;
+    item.querySelector("strong").textContent = patient.patientName.trim();
+    item.querySelector("span").textContent = patient.timerName;
+
+    const bubbles = item.querySelector(".patient-bubbles");
+    for (const focus of patientFocusItems) {
+      const button = document.createElement("button");
+      button.className = `patient-bubble${checks[focus.key] ? " active" : ""}`;
+      button.type = "button";
+      button.title = focus.label;
+      button.setAttribute("aria-label", `${focus.label} for ${patient.patientName}`);
+      button.setAttribute("aria-pressed", String(Boolean(checks[focus.key])));
+      button.textContent = focus.icon;
+      button.addEventListener("click", () => {
+        updatePatientChecksFor(patient, {
+          ...checks,
+          [focus.key]: !checks[focus.key]
+        });
+      });
+      bubbles.append(button);
+    }
+
+    item.querySelector(".patient-remove").addEventListener("click", () => {
+      removePatientFor(patient);
+    });
+    els.patientList.append(item);
   }
 }
 
