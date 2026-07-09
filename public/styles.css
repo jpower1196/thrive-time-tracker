@@ -745,6 +745,7 @@ button:focus-visible {
   flex-wrap: wrap;
   justify-content: center;
   gap: 6px;
+  transform: translateX(12px);
 }
 
 .adjust-time {
