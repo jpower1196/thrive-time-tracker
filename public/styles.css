@@ -123,20 +123,22 @@ input {
   transform: translateY(-50%);
   border-radius: 8px;
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(255, 250, 241, 0.9));
-  box-shadow: 0 12px 28px rgba(8, 20, 51, 0.08);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(232, 247, 250, 0.58));
+  box-shadow: var(--soft-shadow);
 }
 
 .quick-alert-feed {
   right: calc(50% + 250px);
-  width: 172px;
-  min-height: 78px;
+  width: 300px;
+  height: 190px;
   display: grid;
-  align-content: center;
-  gap: 5px;
+  align-content: start;
+  gap: 8px;
   padding: 12px;
-  border: 1px solid rgba(100, 190, 207, 0.42);
+  border: 1px solid rgba(207, 217, 220, 0.95);
+  border-top: 5px solid rgba(100, 190, 207, 0.48);
   text-align: left;
+  overflow-y: auto;
 }
 
 .quick-alert-title {
@@ -268,8 +270,9 @@ button:focus-visible {
   top: 50%;
   transform: translateY(-50%);
   width: 300px;
-  max-height: 190px;
+  height: 190px;
   display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
   gap: 8px;
   padding: 12px;
   border: 1px solid rgba(207, 217, 220, 0.95);
@@ -282,29 +285,30 @@ button:focus-visible {
 
 .patient-task-heading h2 {
   margin: 0;
-  color: var(--navy);
-  font-size: 0.72rem;
+  color: var(--accent-strong);
+  font-size: 0.66rem;
   font-weight: 900;
-  line-height: 1.1;
+  line-height: 1;
   text-transform: uppercase;
 }
 
 .patient-list {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 7px;
-  max-height: 124px;
+  align-content: start;
+  gap: 6px;
+  min-height: 0;
   overflow-y: auto;
   padding-right: 2px;
 }
 
 .patient-focus-item {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) 12px auto 24px 26px;
   align-items: center;
-  gap: 7px;
-  min-height: 46px;
-  padding: 8px;
+  gap: 6px;
+  min-height: 34px;
+  padding: 5px 6px;
   border: 1px solid rgba(207, 217, 220, 0.92);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.82);
@@ -312,8 +316,6 @@ button:focus-visible {
 
 .patient-focus-copy {
   min-width: 0;
-  display: grid;
-  gap: 2px;
   text-align: left;
 }
 
@@ -326,7 +328,8 @@ button:focus-visible {
 
 .patient-focus-copy strong {
   color: var(--navy);
-  font-size: 0.88rem;
+  font-size: 0.78rem;
+  line-height: 1.1;
 }
 
 .patient-focus-copy span,
@@ -346,6 +349,18 @@ button:focus-visible {
   gap: 5px;
 }
 
+.patient-row-spacer {
+  width: 12px;
+  height: 24px;
+}
+
+.patient-delete-spacer {
+  width: 24px;
+  height: 24px;
+  pointer-events: none;
+  visibility: hidden;
+}
+
 .patient-bubble,
 .patient-remove {
   border: 1px solid rgba(100, 190, 207, 0.34);
@@ -355,8 +370,8 @@ button:focus-visible {
 }
 
 .patient-bubble {
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   display: grid;
   place-items: center;
   border-radius: 999px;
@@ -366,21 +381,37 @@ button:focus-visible {
 }
 
 .patient-bubble.active {
-  border-color: rgba(39, 152, 168, 0.72);
-  background: linear-gradient(135deg, var(--mist), rgba(100, 190, 207, 0.28));
   box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.66), 0 6px 14px rgba(18, 114, 129, 0.12);
   filter: grayscale(0);
 }
 
+.patient-bubble.lightning.active {
+  border-color: rgba(199, 166, 106, 0.84);
+  background: linear-gradient(135deg, rgba(255, 250, 241, 0.98), rgba(224, 194, 132, 0.58));
+}
+
+.patient-bubble.spine.active {
+  border-color: rgba(39, 152, 168, 0.72);
+  background: linear-gradient(135deg, var(--mist), rgba(100, 190, 207, 0.32));
+}
+
+.patient-bubble.strength.active {
+  border-color: rgba(71, 143, 103, 0.72);
+  background: linear-gradient(135deg, rgba(238, 249, 242, 0.98), rgba(112, 184, 143, 0.42));
+}
+
 .patient-remove {
-  grid-column: 1 / -1;
-  justify-self: end;
-  min-height: 30px;
-  padding: 0 9px;
-  border-radius: 8px;
+  width: 24px;
+  height: 24px;
+  min-height: 24px;
+  padding: 0;
+  border-color: rgba(169, 71, 56, 0.4);
+  border-radius: 999px;
+  background: rgba(255, 248, 246, 0.96);
   color: var(--danger);
-  font-size: 0.72rem;
-  font-weight: 850;
+  font-size: 0.86rem;
+  font-weight: 900;
+  line-height: 1;
 }
 
 .provider-board {
@@ -781,7 +812,7 @@ button:focus-visible {
 
   .quick-alert-feed {
     right: calc(50% + 230px);
-    width: 146px;
+    width: 250px;
   }
 
   h1 {
@@ -827,8 +858,7 @@ button:focus-visible {
   }
 
   .patient-task-panel {
-    width: min(320px, 100%);
-    max-height: none;
+    width: min(240px, 100%);
   }
 
   .patient-list {
@@ -863,12 +893,10 @@ button:focus-visible {
     padding-bottom: 0;
   }
 
-  .patient-list,
-  .patient-focus-item {
+  .patient-list {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .patient-focus-copy,
   .patient-task-heading h2 {
     text-align: center;
   }

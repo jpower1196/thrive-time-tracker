@@ -49,13 +49,6 @@ function bedNumber(timer) {
   return timer.name.match(/^Bed\s+(\d+)$/i)?.[1] || null;
 }
 
-function bedAlertLabel(timer) {
-  const patientName = timer.patientName?.trim();
-  const number = bedNumber(timer);
-
-  return patientName || `Patient on bed ${number}`;
-}
-
 function sentenceList(items) {
   if (items.length <= 1) {
     return items[0] || "";
@@ -68,23 +61,41 @@ function sentenceList(items) {
   return `${items.slice(0, -1).join(", ")}, and ${items.at(-1)}`;
 }
 
+function therapyStatusPhrase(timer) {
+  const patientName = timer.patientName?.trim();
+
+  if (!patientName) {
+    return null;
+  }
+
+  if (timer.running) {
+    return `${patientName} is in ${timer.name}.`;
+  }
+
+  if (isTimerAtFullTime(timer)) {
+    return `${patientName} has not started ${timer.name}.`;
+  }
+
+  return `${patientName} is paused in ${timer.name}.`;
+}
+
 function quickAlertMessage() {
-  const bedTimers = state.timers.filter((timer) => bedNumber(timer));
-  const finishingTimers = bedTimers
-    .filter((timer) => timer.running && timer.remainingMs > 0 && timer.remainingMs <= 60 * 1000)
-    .sort((a, b) => a.remainingMs - b.remainingMs);
-  const flareTimers = bedTimers.filter((timer) => timer.flare);
+  const therapyTimers = state.timers.filter((timer) => timer.group === "therapy");
+  const flareTimers = therapyTimers.filter((timer) => timer.flare);
+  const patientStatuses = therapyTimers
+    .map(therapyStatusPhrase)
+    .filter(Boolean);
   const messages = [];
 
-  if (finishingTimers.length > 0) {
-    messages.push(`${sentenceList(finishingTimers.map(bedAlertLabel))} will be coming back to the treatment room shortly.`);
-  }
-
   if (flareTimers.length > 0) {
-    messages.push(`Flare-up indicated: ${sentenceList(flareTimers.map(bedAlertLabel))}.`);
+    messages.push(`Flare-up indicated for ${sentenceList(flareTimers.map((timer) => timer.patientName?.trim() || timer.name))}.`);
   }
 
-  return messages.join(" ") || "No bed sessions finishing soon";
+  if (patientStatuses.length > 0) {
+    messages.push(patientStatuses.slice(0, 4).join(" "));
+  }
+
+  return messages.join(" ") || "No active patient status updates";
 }
 
 async function updatePatientChecksFor(item, patientChecks) {
@@ -302,9 +313,9 @@ function renderTimerList() {
         <button class="button compact reset-timer" type="button">Reset</button>
         ${isProvider ? "" : `
           <div class="time-adjustments">
+            <button class="button compact adjust-time subtract-thirty-time" type="button">-30s</button>
             <button class="button compact adjust-time subtract-ten-time" type="button">-10s</button>
             <button class="button compact adjust-time subtract-time" type="button">-5s</button>
-            <button class="button compact adjust-time add-time" type="button">+5s</button>
           </div>
         `}
       </div>
@@ -336,14 +347,14 @@ function renderTimerList() {
     card.querySelector(".flare-toggle")?.addEventListener("click", () => {
       changeTimerFor(timer.id, "flare");
     });
+    card.querySelector(".subtract-thirty-time")?.addEventListener("click", () => {
+      addSecondsFor(timer.id, -30);
+    });
     card.querySelector(".subtract-ten-time")?.addEventListener("click", () => {
       addSecondsFor(timer.id, -10);
     });
     card.querySelector(".subtract-time")?.addEventListener("click", () => {
       addSecondsFor(timer.id, -5);
-    });
-    card.querySelector(".add-time")?.addEventListener("click", () => {
-      addSecondsFor(timer.id, 5);
     });
     card.querySelector(".reset-timer").addEventListener("click", () => {
       changeTimerFor(timer.id, "reset");
@@ -367,23 +378,13 @@ function renderTimerList() {
 }
 
 function renderPatientList() {
-  const activePatients = state.timers
-    .filter((timer) => timer.patientName?.trim())
-    .map((timer) => ({
-      id: timer.id,
-      source: "timer",
-      timerName: timer.name,
-      patientName: timer.patientName.trim(),
-      patientChecks: timer.patientChecks || {}
-    }));
-  const completedPatients = (state.completedPatients || []).map((patient) => ({
+  const patientItems = (state.completedPatients || []).map((patient) => ({
     id: patient.id,
     source: "completed",
     timerName: patient.timerName,
     patientName: patient.patientName,
     patientChecks: patient.patientChecks || {}
   }));
-  const patientItems = [...activePatients, ...completedPatients];
 
   els.patientList.innerHTML = "";
 
@@ -399,18 +400,18 @@ function renderPatientList() {
     item.innerHTML = `
       <div class="patient-focus-copy">
         <strong></strong>
-        <span></span>
       </div>
+      <span class="patient-row-spacer" aria-hidden="true"></span>
       <div class="patient-bubbles"></div>
-      <button class="patient-remove" type="button">Remove</button>
+      <span class="patient-delete-spacer" aria-hidden="true"></span>
+      <button class="patient-remove" type="button" aria-label="Remove ${patient.patientName}">×</button>
     `;
     item.querySelector("strong").textContent = patient.patientName.trim();
-    item.querySelector("span").textContent = patient.timerName;
 
     const bubbles = item.querySelector(".patient-bubbles");
     for (const focus of patientFocusItems) {
       const button = document.createElement("button");
-      button.className = `patient-bubble${checks[focus.key] ? " active" : ""}`;
+      button.className = `patient-bubble ${focus.key}${checks[focus.key] ? " active" : ""}`;
       button.type = "button";
       button.title = focus.label;
       button.setAttribute("aria-label", `${focus.label} for ${patient.patientName}`);

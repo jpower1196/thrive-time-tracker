@@ -76,6 +76,7 @@ function createTimer(name = "Bed 1", minutes = 10, id = null, mode = "countdown"
     remainingMs: mode === "countup" ? 0 : durationMs,
     patientName: "",
     patientChecks: { ...DEFAULT_PATIENT_CHECKS },
+    patientRecordId: null,
     flare: false,
     running: false,
     startedAt: null,
@@ -122,6 +123,7 @@ function loadState() {
         remainingMs: Math.max(0, Number(timer.remainingMs) || 0),
         patientName: String(timer.patientName || "").trim().slice(0, 32),
         patientChecks: cleanPatientChecks(timer.patientChecks),
+        patientRecordId: timer.patientRecordId ? String(timer.patientRecordId) : null,
         flare: Boolean(timer.flare),
         running: Boolean(timer.running),
         startedAt: timer.startedAt ? Number(timer.startedAt) : null,
@@ -155,6 +157,7 @@ function normalizeFixedState(inputState) {
       group: preset.group,
       patientName: String(existing.patientName || "").trim().slice(0, 32),
       patientChecks: cleanPatientChecks(existing.patientChecks),
+      patientRecordId: existing.patientRecordId ? String(existing.patientRecordId) : null,
       flare: Boolean(existing.flare),
       durationMs,
       remainingMs: preset.mode === "countup" ? savedMs : Math.min(savedMs || durationMs, durationMs)
@@ -193,6 +196,44 @@ function currentTimerMs(timer) {
   return Math.max(0, timer.remainingMs - (Date.now() - timer.startedAt));
 }
 
+function upsertPatientRecord(timer, patientName = timer.patientName) {
+  const cleanName = String(patientName || "").trim().slice(0, 32);
+
+  if (!cleanName) {
+    return null;
+  }
+
+  const completedPatients = cleanCompletedPatients(state.completedPatients);
+  const existingIndex = timer.patientRecordId
+    ? completedPatients.findIndex((patient) => patient.id === timer.patientRecordId)
+    : -1;
+
+  if (existingIndex >= 0) {
+    completedPatients[existingIndex] = {
+      ...completedPatients[existingIndex],
+      timerId: timer.id,
+      timerName: timer.name,
+      patientName: cleanName,
+      patientChecks: cleanPatientChecks(timer.patientChecks)
+    };
+    state.completedPatients = completedPatients;
+    return completedPatients[existingIndex];
+  }
+
+  const patient = {
+    id: `${timer.id}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+    timerId: timer.id,
+    timerName: timer.name,
+    patientName: cleanName,
+    patientChecks: cleanPatientChecks(timer.patientChecks),
+    completedAt: Date.now()
+  };
+
+  timer.patientRecordId = patient.id;
+  state.completedPatients = cleanCompletedPatients([...completedPatients, patient]);
+  return patient;
+}
+
 function completePatientTreatment(timer) {
   const patientName = String(timer.patientName || "").trim();
 
@@ -200,17 +241,13 @@ function completePatientTreatment(timer) {
     return;
   }
 
-  state.completedPatients = cleanCompletedPatients([
-    ...(state.completedPatients || []),
-    {
-      id: `${timer.id}-${Date.now().toString(36)}`,
-      timerId: timer.id,
-      timerName: timer.name,
-      patientName,
-      patientChecks: cleanPatientChecks(timer.patientChecks),
-      completedAt: Date.now()
-    }
-  ]);
+  const patient = upsertPatientRecord(timer, patientName);
+
+  if (patient) {
+    state.completedPatients = cleanCompletedPatients(state.completedPatients).map((item) => (
+      item.id === patient.id ? { ...item, completedAt: Date.now() } : item
+    ));
+  }
 }
 
 function normalizeTimers() {
@@ -232,6 +269,7 @@ function normalizeTimers() {
       timer.remainingMs = 0;
       timer.patientName = "";
       timer.patientChecks = { ...DEFAULT_PATIENT_CHECKS };
+      timer.patientRecordId = null;
       timer.startedAt = null;
       timer.updatedAt = Date.now();
       timer.changedBy = "Timer";
@@ -257,6 +295,7 @@ function publicTimer(timer) {
     group: timer.group,
     patientName: timer.patientName || "",
     patientChecks: cleanPatientChecks(timer.patientChecks),
+    patientRecordId: timer.patientRecordId,
     flare: Boolean(timer.flare),
     durationMs: timer.durationMs,
     remainingMs: currentTimerMs(timer),
@@ -339,6 +378,7 @@ function applyTimerChange(timer, action, seconds, actor) {
     timer.remainingMs = timer.mode === "countup" ? 0 : timer.durationMs;
     timer.patientName = "";
     timer.patientChecks = { ...DEFAULT_PATIENT_CHECKS };
+    timer.patientRecordId = null;
     timer.running = false;
     timer.startedAt = null;
   }
@@ -379,13 +419,23 @@ function updateTimerDetails(timer, body, actor) {
 
   if ("patientName" in body) {
     timer.patientName = patientName.slice(0, 32);
-    if (!timer.patientName) {
+    if (timer.patientName) {
+      upsertPatientRecord(timer, timer.patientName);
+    } else {
       timer.patientChecks = { ...DEFAULT_PATIENT_CHECKS };
+      timer.patientRecordId = null;
     }
   }
 
   if ("patientChecks" in body) {
     timer.patientChecks = cleanPatientChecks(body.patientChecks);
+    if (timer.patientRecordId) {
+      state.completedPatients = cleanCompletedPatients(state.completedPatients).map((item) => (
+        item.id === timer.patientRecordId
+          ? { ...item, patientChecks: cleanPatientChecks(timer.patientChecks) }
+          : item
+      ));
+    }
   }
 
   if (Number.isFinite(seconds)) {
@@ -522,6 +572,11 @@ const server = http.createServer(async (request, response) => {
           ? { ...item, patientChecks: cleanPatientChecks(body.patientChecks) }
           : item
       ));
+      for (const timer of state.timers) {
+        if (timer.patientRecordId === patient.id) {
+          timer.patientChecks = cleanPatientChecks(body.patientChecks);
+        }
+      }
       saveState();
       broadcast();
       response.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
@@ -544,6 +599,13 @@ const server = http.createServer(async (request, response) => {
 
     state.completedPatients = cleanCompletedPatients(state.completedPatients)
       .filter((item) => item.id !== patient.id);
+    for (const timer of state.timers) {
+      if (timer.patientRecordId === patient.id) {
+        timer.patientRecordId = null;
+        timer.patientName = "";
+        timer.patientChecks = { ...DEFAULT_PATIENT_CHECKS };
+      }
+    }
     saveState();
     broadcast();
     response.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
