@@ -15,6 +15,7 @@ let state = {
 const temporaryNames = new Map();
 const patientNameTimers = new Map();
 const patientNameLastSent = new Map();
+const EMPTY_PATIENT_STATUS = "No active patient status updates";
 const spineIcon = `
   <svg class="spine-icon" viewBox="0 0 24 24" aria-hidden="true">
     <path d="M12 3.2v17.6" />
@@ -24,9 +25,9 @@ const spineIcon = `
   </svg>
 `;
 const patientFocusItems = [
-  { key: "lightning", icon: "⚡", label: "Lightning" },
-  { key: "spine", icon: spineIcon, label: "Spine" },
-  { key: "strength", icon: "🏋", label: "Strength" }
+  { key: "lightning", icon: "⚡", label: "STIM" },
+  { key: "spine", icon: spineIcon, label: "Adjustment" },
+  { key: "strength", icon: "🏋", label: "Rehab" }
 ];
 
 function actor() {
@@ -76,41 +77,130 @@ function therapyStatusPhrase(timer) {
     return null;
   }
 
+  const completed = (state.completedPatients || [])
+    .filter((patient) => patient.patientName?.trim().toLowerCase() === patientName.toLowerCase());
+  const completedChecks = completed.reduce((checks, patient) => ({
+    lightning: checks.lightning || Boolean(patient.patientChecks?.lightning),
+    spine: checks.spine || Boolean(patient.patientChecks?.spine),
+    strength: checks.strength || Boolean(patient.patientChecks?.strength)
+  }), { lightning: false, spine: false, strength: false });
+  const completedLabels = [];
+
+  if (completedChecks.lightning) {
+    completedLabels.push("STIM");
+  }
+  if (completedChecks.spine) {
+    completedLabels.push("adjustment");
+  }
+  if (completedChecks.strength) {
+    completedLabels.push("rehabilitation therapy");
+  }
+
+  const therapyName = timer.name === "Rehab Therapy"
+    ? "rehabilitation therapy"
+    : timer.name.match(/^Bed\s+\d+$/i)
+      ? "STIM therapy"
+      : timer.name;
+  const locationPhrase = timer.name === "Decompression Chair"
+    ? "is on the Decompression Chair"
+    : `is in ${therapyName}`;
+  const completionPhrase = completedLabels.length
+    ? `, has completed ${sentenceList(completedLabels)}`
+    : timer.running ? "" : ", has not started other therapies";
+
   if (timer.running) {
-    return `${patientName} is in ${timer.name}.`;
+    return {
+      name: patientName,
+      text: `${patientName} ${locationPhrase}${completionPhrase}.`,
+      flare: timer.flare
+    };
   }
 
   if (isTimerAtFullTime(timer)) {
-    return `${patientName} has not started ${timer.name}.`;
+    return {
+      name: patientName,
+      text: `${patientName} has not started other therapies${completedLabels.length ? completionPhrase : ""}.`,
+      flare: timer.flare
+    };
   }
 
-  return `${patientName} is paused in ${timer.name}.`;
+  return {
+    name: patientName,
+    text: `${patientName} is paused in ${therapyName}${completionPhrase}.`,
+    flare: timer.flare
+  };
 }
 
-function quickAlertMessage() {
+function completedTreatmentLabels(checks = {}) {
+  const labels = [];
+
+  if (checks.lightning) {
+    labels.push("STIM");
+  }
+  if (checks.spine) {
+    labels.push("adjustment");
+  }
+  if (checks.strength) {
+    labels.push("rehabilitation therapy");
+  }
+
+  return labels;
+}
+
+function completedPatientStatusPhrase(patient) {
+  const patientName = patient.patientName?.trim();
+
+  if (!patientName) {
+    return null;
+  }
+
+  const completedLabels = completedTreatmentLabels(patient.patientChecks);
+  const completedText = completedLabels.length
+    ? `has completed ${sentenceList(completedLabels)}`
+    : "is listed in completed treatments";
+
+  return {
+    name: patientName,
+    text: `${patientName} ${completedText}.`,
+    flare: false
+  };
+}
+
+function patientStatusItems() {
   const therapyTimers = state.timers.filter((timer) => timer.group === "therapy");
-  const flareTimers = therapyTimers.filter((timer) => timer.flare);
-  const patientStatuses = therapyTimers
+  const activeStatuses = therapyTimers
     .map(therapyStatusPhrase)
     .filter(Boolean);
-  const messages = [];
+  const activePatientNames = new Set(activeStatuses.map((status) => status.name.toLowerCase()));
+  const completedStatuses = (state.completedPatients || [])
+    .filter((patient) => {
+      const patientName = patient.patientName?.trim().toLowerCase();
 
-  if (flareTimers.length > 0) {
-    messages.push(`Flare-up indicated for ${sentenceList(flareTimers.map((timer) => timer.patientName?.trim() || timer.name))}.`);
-  }
+      return patientName && !activePatientNames.has(patientName);
+    })
+    .map(completedPatientStatusPhrase)
+    .filter(Boolean);
 
-  if (patientStatuses.length > 0) {
-    messages.push(patientStatuses.slice(0, 4).join(" "));
-  }
-
-  return messages.join(" ") || "No active patient status updates";
+  return [...activeStatuses, ...completedStatuses];
 }
 
 function renderPatientStatus() {
-  const message = quickAlertMessage();
+  const statuses = patientStatusItems();
 
-  els.quickAlertFeed.textContent = message;
-  els.quickAlertFeed.classList.toggle("is-empty", message === "No active patient status updates");
+  els.quickAlertFeed.innerHTML = "";
+  els.quickAlertFeed.classList.toggle("is-empty", statuses.length === 0);
+
+  if (statuses.length === 0) {
+    els.quickAlertFeed.textContent = EMPTY_PATIENT_STATUS;
+    return;
+  }
+
+  for (const status of statuses) {
+    const item = document.createElement("p");
+    item.className = `patient-status-item${status.flare ? " flare" : ""}`;
+    item.textContent = status.flare ? `${status.text} Flare-up indicated.` : status.text;
+    els.quickAlertFeed.append(item);
+  }
 }
 
 async function updatePatientChecksFor(item, patientChecks) {
@@ -242,6 +332,17 @@ async function addSecondsFor(timerId, seconds) {
   });
 }
 
+async function completePatientFor(timerId) {
+  await requestJson(`/api/timers/${timerId}`, {
+    method: "POST",
+    body: JSON.stringify({
+      action: "complete-patient",
+      seconds: 0,
+      actor: actor()
+    })
+  });
+}
+
 function therapyTimers() {
   return state.timers.filter((timer) => timer.group === "therapy");
 }
@@ -314,6 +415,9 @@ function renderTimerList() {
         <button class="flare-toggle${timer.flare ? " active" : ""}" type="button" aria-pressed="${timer.flare}" aria-label="Toggle flare-up alert for ${timer.name}">
           <span aria-hidden="true">🔥</span>
         </button>
+        <button class="complete-patient-toggle" type="button" aria-label="Add patient from ${timer.name} to completed treatments">
+          <span aria-hidden="true">+</span>
+        </button>
       `}
       <div class="tile-main">
         <h3 class="tile-name"></h3>
@@ -337,6 +441,13 @@ function renderTimerList() {
     `;
     card.querySelector(".tile-name").textContent = timer.name;
     const nameInput = card.querySelector(".temp-name-input");
+    const timerFinished = timer.mode !== "countup" && !timer.running && timer.remainingMs <= 0;
+
+    if (timerFinished) {
+      temporaryNames.delete(timer.id);
+      patientNameLastSent.set(timer.id, "");
+    }
+
     nameInput.dataset.timerId = timer.id;
     nameInput.value = temporaryNames.has(timer.id) ? temporaryNames.get(timer.id) : timer.patientName || "";
     nameInput.addEventListener("input", () => {
@@ -361,6 +472,9 @@ function renderTimerList() {
     });
     card.querySelector(".flare-toggle")?.addEventListener("click", () => {
       changeTimerFor(timer.id, "flare");
+    });
+    card.querySelector(".complete-patient-toggle")?.addEventListener("click", () => {
+      completePatientFor(timer.id);
     });
     card.querySelector(".subtract-thirty-time")?.addEventListener("click", () => {
       addSecondsFor(timer.id, -30);
@@ -431,7 +545,7 @@ function renderPatientList() {
       button.title = focus.label;
       button.setAttribute("aria-label", `${focus.label} for ${patient.patientName}`);
       button.setAttribute("aria-pressed", String(Boolean(checks[focus.key])));
-      button.innerHTML = focus.icon;
+      button.innerHTML = checks[focus.key] ? "✓" : focus.icon;
       button.addEventListener("click", () => {
         updatePatientChecksFor(patient, {
           ...checks,

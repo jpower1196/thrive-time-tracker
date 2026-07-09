@@ -1,20 +1,7 @@
 {
   "activeTimerId": "bed-1",
-  "totalSessionsTracked": 27,
-  "completedPatients": [
-    {
-      "id": "bed-1-mrcu3xs0-mvy6",
-      "timerId": "bed-1",
-      "timerName": "Bed 1",
-      "patientName": "33",
-      "patientChecks": {
-        "lightning": false,
-        "spine": false,
-        "strength": false
-      },
-      "completedAt": 1783560899520
-    }
-  ],
+  "totalSessionsTracked": 33,
+  "completedPatients": [],
   "timers": [
     {
       "id": "bed-1",
@@ -33,7 +20,7 @@
       "flare": false,
       "running": false,
       "startedAt": null,
-      "updatedAt": 1783560908616,
+      "updatedAt": 1783617652116,
       "changedBy": "Site visitor"
     },
     {
@@ -53,7 +40,7 @@
       "flare": false,
       "running": false,
       "startedAt": null,
-      "updatedAt": 1783560422565,
+      "updatedAt": 1783617651206,
       "changedBy": "Site visitor"
     },
     {
@@ -73,8 +60,8 @@
       "flare": false,
       "running": false,
       "startedAt": null,
-      "updatedAt": 1782958937281,
-      "changedBy": "System"
+      "updatedAt": 1783617451790,
+      "changedBy": "Site visitor"
     },
     {
       "id": "bed-4",
@@ -181,8 +168,8 @@
       "name": "Rehab Therapy",
       "mode": "countdown",
       "group": "therapy",
-      "durationMs": 900000,
-      "remainingMs": 900000,
+      "durationMs": 600000,
+      "remainingMs": 600000,
       "patientName": "",
       "patientChecks": {
         "lightning": false,

@@ -164,6 +164,23 @@ input {
   text-align: center;
 }
 
+.patient-status-item {
+  margin: 0;
+  padding: 7px 8px;
+  border: 1px solid rgba(207, 217, 220, 0.72);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--navy);
+  font-size: 0.72rem;
+  font-weight: 780;
+  line-height: 1.25;
+}
+
+.patient-status-item.flare {
+  border-color: rgba(169, 71, 56, 0.34);
+  background: linear-gradient(135deg, rgba(255, 248, 246, 0.96), rgba(241, 165, 160, 0.18));
+}
+
 .stage-copy {
   display: grid;
   gap: 12px;
@@ -403,19 +420,14 @@ button:focus-visible {
   filter: grayscale(0);
 }
 
-.patient-bubble.lightning.active {
-  border-color: rgba(199, 166, 106, 0.84);
-  background: linear-gradient(135deg, rgba(255, 250, 241, 0.98), rgba(224, 194, 132, 0.58));
-}
-
-.patient-bubble.spine.active {
-  border-color: rgba(39, 152, 168, 0.72);
-  background: linear-gradient(135deg, var(--mist), rgba(100, 190, 207, 0.32));
-}
-
+.patient-bubble.lightning.active,
+.patient-bubble.spine.active,
 .patient-bubble.strength.active {
-  border-color: rgba(71, 143, 103, 0.72);
-  background: linear-gradient(135deg, rgba(238, 249, 242, 0.98), rgba(112, 184, 143, 0.42));
+  border-color: rgba(33, 132, 68, 0.66);
+  background: linear-gradient(135deg, rgba(238, 249, 242, 0.98), rgba(89, 199, 120, 0.44));
+  color: #1f7a3d;
+  font-size: 0.96rem;
+  font-weight: 950;
 }
 
 .patient-remove {
@@ -634,9 +646,9 @@ button:focus-visible {
   box-shadow: 0 0 0 3px rgba(100, 190, 207, 0.16);
 }
 
-.flare-toggle {
+.flare-toggle,
+.complete-patient-toggle {
   position: absolute;
-  left: 10px;
   bottom: 20px;
   display: grid;
   place-items: center;
@@ -654,7 +666,22 @@ button:focus-visible {
   transition: transform 150ms ease, background 150ms ease, box-shadow 150ms ease, opacity 150ms ease, filter 150ms ease;
 }
 
-.flare-toggle:hover {
+.flare-toggle {
+  left: 10px;
+}
+
+.complete-patient-toggle {
+  right: 10px;
+  border-color: rgba(100, 190, 207, 0.42);
+  color: var(--teal-deep);
+  font-size: 1.05rem;
+  font-weight: 900;
+  filter: none;
+  opacity: 0.76;
+}
+
+.flare-toggle:hover,
+.complete-patient-toggle:hover {
   transform: translateY(-1px);
   opacity: 0.86;
   border-color: rgba(199, 166, 106, 0.52);
@@ -745,7 +772,6 @@ button:focus-visible {
   flex-wrap: wrap;
   justify-content: center;
   gap: 6px;
-  transform: translateX(12px);
 }
 
 .adjust-time {

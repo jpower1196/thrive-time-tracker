@@ -20,7 +20,7 @@ const TIMER_PRESETS = [
   { id: "roller-table-1", name: "Roller Table 1", minutes: 10, mode: "countdown", group: "therapy" },
   { id: "roller-table-2", name: "Roller Table 2", minutes: 10, mode: "countdown", group: "therapy" },
   { id: "decompression-chair", name: "Decompression Chair", minutes: 12, mode: "countdown", group: "therapy" },
-  { id: "rehab-therapy", name: "Rehab Therapy", minutes: 15, mode: "countdown", group: "therapy" }
+  { id: "rehab-therapy", name: "Rehab Therapy", minutes: 10, mode: "countdown", group: "therapy" }
 ];
 
 const DEFAULT_PATIENT_CHECKS = {
@@ -264,7 +264,6 @@ function normalizeTimers() {
     const remainingMs = currentTimerMs(timer);
 
     if (timer.mode !== "countup" && timer.running && remainingMs <= 0) {
-      completePatientTreatment(timer);
       timer.running = false;
       timer.remainingMs = 0;
       timer.patientName = "";
@@ -402,6 +401,10 @@ function applyTimerChange(timer, action, seconds, actor) {
     timer.flare = !timer.flare;
   }
 
+  if (action === "complete-patient") {
+    upsertPatientRecord(timer);
+  }
+
   timer.updatedAt = Date.now();
   timer.changedBy = actor || "Someone";
   saveState();
@@ -419,9 +422,7 @@ function updateTimerDetails(timer, body, actor) {
 
   if ("patientName" in body) {
     timer.patientName = patientName.slice(0, 32);
-    if (timer.patientName) {
-      upsertPatientRecord(timer, timer.patientName);
-    } else {
+    if (!timer.patientName) {
       timer.patientChecks = { ...DEFAULT_PATIENT_CHECKS };
       timer.patientRecordId = null;
     }
@@ -651,7 +652,7 @@ const server = http.createServer(async (request, response) => {
       const action = String(body.action || "");
       const seconds = Number(body.seconds || 0);
       const actor = String(body.actor || "").trim().slice(0, 40);
-      const allowedActions = new Set(["start", "restart", "prepare", "stop", "reset", "add", "set", "flare"]);
+      const allowedActions = new Set(["start", "restart", "prepare", "stop", "reset", "add", "set", "flare", "complete-patient"]);
 
       if (!allowedActions.has(action) || !Number.isFinite(seconds)) {
         response.writeHead(400, { "Content-Type": "application/json; charset=utf-8" });
