@@ -15,9 +15,17 @@ let state = {
 const temporaryNames = new Map();
 const patientNameTimers = new Map();
 const patientNameLastSent = new Map();
+const spineIcon = `
+  <svg class="spine-icon" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M12 3.2v17.6" />
+    <path d="M12 5.2c2.3 0 4 1.2 4 2.7s-1.7 2.7-4 2.7-4-1.2-4-2.7 1.7-2.7 4-2.7Z" />
+    <path d="M12 10.1c2.1 0 3.7 1.1 3.7 2.5s-1.6 2.5-3.7 2.5-3.7-1.1-3.7-2.5 1.6-2.5 3.7-2.5Z" />
+    <path d="M12 14.7c1.8 0 3.2 1 3.2 2.2s-1.4 2.2-3.2 2.2-3.2-1-3.2-2.2 1.4-2.2 3.2-2.2Z" />
+  </svg>
+`;
 const patientFocusItems = [
   { key: "lightning", icon: "⚡", label: "Lightning" },
-  { key: "spine", icon: "🦴", label: "Spine" },
+  { key: "spine", icon: spineIcon, label: "Spine" },
   { key: "strength", icon: "🏋", label: "Strength" }
 ];
 
@@ -96,6 +104,13 @@ function quickAlertMessage() {
   }
 
   return messages.join(" ") || "No active patient status updates";
+}
+
+function renderPatientStatus() {
+  const message = quickAlertMessage();
+
+  els.quickAlertFeed.textContent = message;
+  els.quickAlertFeed.classList.toggle("is-empty", message === "No active patient status updates");
 }
 
 async function updatePatientChecksFor(item, patientChecks) {
@@ -274,7 +289,7 @@ function renderTimerList() {
   if (els.providerList) {
     els.providerList.innerHTML = "";
   }
-  els.quickAlertFeed.textContent = quickAlertMessage();
+  renderPatientStatus();
   renderPatientList();
 
   for (const timer of state.timers) {
@@ -416,7 +431,7 @@ function renderPatientList() {
       button.title = focus.label;
       button.setAttribute("aria-label", `${focus.label} for ${patient.patientName}`);
       button.setAttribute("aria-pressed", String(Boolean(checks[focus.key])));
-      button.textContent = focus.icon;
+      button.innerHTML = focus.icon;
       button.addEventListener("click", () => {
         updatePatientChecksFor(patient, {
           ...checks,

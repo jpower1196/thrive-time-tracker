@@ -1,7 +1,20 @@
 {
   "activeTimerId": "bed-1",
-  "totalSessionsTracked": 25,
-  "completedPatients": [],
+  "totalSessionsTracked": 27,
+  "completedPatients": [
+    {
+      "id": "bed-1-mrcu3xs0-mvy6",
+      "timerId": "bed-1",
+      "timerName": "Bed 1",
+      "patientName": "33",
+      "patientChecks": {
+        "lightning": false,
+        "spine": false,
+        "strength": false
+      },
+      "completedAt": 1783560899520
+    }
+  ],
   "timers": [
     {
       "id": "bed-1",
@@ -20,7 +33,7 @@
       "flare": false,
       "running": false,
       "startedAt": null,
-      "updatedAt": 1783560423511,
+      "updatedAt": 1783560908616,
       "changedBy": "Site visitor"
     },
     {
