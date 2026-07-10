@@ -2,7 +2,8 @@ const els = {
   timerList: document.querySelector("#timerList"),
   providerList: document.querySelector("#providerList"),
   patientList: document.querySelector("#patientList"),
-  quickAlertFeed: document.querySelector("#quickAlertFeed")
+  quickAlertFeed: document.querySelector("#quickAlertFeed"),
+  rehabVisibilityToggle: document.querySelector("#rehabVisibilityToggle")
 };
 
 let state = {
@@ -16,6 +17,8 @@ const temporaryNames = new Map();
 const patientNameTimers = new Map();
 const patientNameLastSent = new Map();
 const EMPTY_PATIENT_STATUS = "No active patient status updates";
+const REHAB_VISIBILITY_KEY = "thriveRehabTreatmentVisible";
+let showRehabTreatment = localStorage.getItem(REHAB_VISIBILITY_KEY) !== "false";
 const spineIcon = `
   <svg class="spine-icon" viewBox="0 0 24 24" aria-hidden="true">
     <path d="M12 3.2v17.6" />
@@ -25,10 +28,24 @@ const spineIcon = `
   </svg>
 `;
 const patientFocusItems = [
-  { key: "lightning", icon: "⚡", label: "STIM" },
+  { key: "lightning", icon: "⚡", label: "Physiotherapy" },
   { key: "spine", icon: spineIcon, label: "Adjustment" },
   { key: "strength", icon: "🏋", label: "Rehab" }
 ];
+
+function visiblePatientFocusItems() {
+  return patientFocusItems.filter((focus) => showRehabTreatment || focus.key !== "strength");
+}
+
+function renderRehabVisibilityToggle() {
+  if (!els.rehabVisibilityToggle) {
+    return;
+  }
+
+  els.rehabVisibilityToggle.textContent = showRehabTreatment ? "Rehab On" : "Rehab Off";
+  els.rehabVisibilityToggle.classList.toggle("is-off", !showRehabTreatment);
+  els.rehabVisibilityToggle.setAttribute("aria-pressed", String(showRehabTreatment));
+}
 
 function actor() {
   return "Site visitor";
@@ -113,7 +130,7 @@ function completedTreatmentLabels(checks = {}) {
   const labels = [];
 
   if (checks.lightning) {
-    labels.push("STIM");
+    labels.push("physiotherapies");
   }
   if (checks.spine) {
     labels.push("adjustment");
@@ -560,7 +577,7 @@ function renderPatientList() {
     item.querySelector("strong").textContent = patient.patientName.trim();
 
     const bubbles = item.querySelector(".patient-bubbles");
-    for (const focus of patientFocusItems) {
+    for (const focus of visiblePatientFocusItems()) {
       const button = document.createElement("button");
       button.className = `patient-bubble ${focus.key}${checks[focus.key] ? " active" : ""}`;
       button.type = "button";
@@ -593,6 +610,17 @@ function connectEvents() {
   });
 }
 
+function connectRehabVisibilityToggle() {
+  renderRehabVisibilityToggle();
+  els.rehabVisibilityToggle?.addEventListener("click", () => {
+    showRehabTreatment = !showRehabTreatment;
+    localStorage.setItem(REHAB_VISIBILITY_KEY, String(showRehabTreatment));
+    renderRehabVisibilityToggle();
+    renderPatientList();
+  });
+}
+
 renderTimerList();
+connectRehabVisibilityToggle();
 connectEvents();
 connectKeypadShortcuts();

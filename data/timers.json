@@ -1,18 +1,18 @@
 {
   "activeTimerId": "bed-1",
-  "totalSessionsTracked": 37,
+  "totalSessionsTracked": 38,
   "completedPatients": [
     {
-      "id": "bed-1-mretzk3t-86dr",
+      "id": "bed-1-mrf6qlo8-lxqt",
       "timerId": "bed-1",
       "timerName": "Bed 1",
-      "patientName": "Hello",
+      "patientName": "Mike",
       "patientChecks": {
-        "lightning": true,
+        "lightning": false,
         "spine": false,
         "strength": false
       },
-      "completedAt": 1783681627529
+      "completedAt": 1783703044664
     }
   ],
   "timers": [
@@ -22,18 +22,18 @@
       "mode": "countdown",
       "group": "therapy",
       "durationMs": 600000,
-      "remainingMs": 598478,
-      "patientName": "",
+      "remainingMs": 600000,
+      "patientName": "Mike",
       "patientChecks": {
         "lightning": false,
         "spine": false,
         "strength": false
       },
-      "patientRecordId": null,
+      "patientRecordId": "bed-1-mrf6qlo8-lxqt",
       "flare": false,
       "running": false,
       "startedAt": null,
-      "updatedAt": 1783681673026,
+      "updatedAt": 1783703044664,
       "changedBy": "Site visitor"
     },
     {

@@ -72,6 +72,7 @@ input {
   text-align: center;
   gap: 24px;
   padding: clamp(24px, 4vw, 48px);
+  padding-bottom: clamp(72px, 6vw, 88px);
   position: relative;
   overflow: hidden;
 }
@@ -233,6 +234,36 @@ h1 {
 button:focus-visible {
   outline: 3px solid rgba(101, 190, 209, 0.36);
   outline-offset: 2px;
+}
+
+.rehab-visibility-toggle {
+  position: absolute;
+  right: clamp(18px, 3vw, 34px);
+  bottom: clamp(18px, 3vw, 28px);
+  z-index: 20;
+  min-height: 34px;
+  padding: 0 14px;
+  border: 1px solid rgba(33, 132, 68, 0.28);
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(238, 249, 242, 0.98), rgba(89, 199, 120, 0.32));
+  color: #1f7a3d;
+  box-shadow: var(--soft-shadow);
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.rehab-visibility-toggle.is-off {
+  border-color: rgba(207, 217, 220, 0.95);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(238, 243, 244, 0.9));
+  color: var(--muted);
+}
+
+.rehab-visibility-toggle:hover {
+  transform: translateY(-1px);
+  border-color: rgba(199, 166, 106, 0.52);
 }
 
 .button {
@@ -886,6 +917,7 @@ button:focus-visible {
   .timer-stage {
     gap: 14px;
     padding: 14px 10px;
+    padding-bottom: 68px;
   }
 
   .brand-lockup {
