@@ -77,41 +77,19 @@ function therapyStatusPhrase(timer) {
     return null;
   }
 
-  const completed = (state.completedPatients || [])
-    .filter((patient) => patient.patientName?.trim().toLowerCase() === patientName.toLowerCase());
-  const completedChecks = completed.reduce((checks, patient) => ({
-    lightning: checks.lightning || Boolean(patient.patientChecks?.lightning),
-    spine: checks.spine || Boolean(patient.patientChecks?.spine),
-    strength: checks.strength || Boolean(patient.patientChecks?.strength)
-  }), { lightning: false, spine: false, strength: false });
-  const completedLabels = [];
-
-  if (completedChecks.lightning) {
-    completedLabels.push("STIM");
-  }
-  if (completedChecks.spine) {
-    completedLabels.push("adjustment");
-  }
-  if (completedChecks.strength) {
-    completedLabels.push("rehabilitation therapy");
-  }
-
   const therapyName = timer.name === "Rehab Therapy"
     ? "rehabilitation therapy"
     : timer.name.match(/^Bed\s+\d+$/i)
       ? "STIM therapy"
       : timer.name;
-  const locationPhrase = timer.name === "Decompression Chair"
-    ? "is on the Decompression Chair"
+  const locationPhrase = timer.name === "Decomp"
+    ? "is on Decomp"
     : `is in ${therapyName}`;
-  const completionPhrase = completedLabels.length
-    ? `, has completed ${sentenceList(completedLabels)}`
-    : timer.running ? "" : ", has not started other therapies";
 
   if (timer.running) {
     return {
       name: patientName,
-      text: `${patientName} ${locationPhrase}${completionPhrase}.`,
+      activity: locationPhrase,
       flare: timer.flare
     };
   }
@@ -119,14 +97,14 @@ function therapyStatusPhrase(timer) {
   if (isTimerAtFullTime(timer)) {
     return {
       name: patientName,
-      text: `${patientName} has not started other therapies${completedLabels.length ? completionPhrase : ""}.`,
+      activity: null,
       flare: timer.flare
     };
   }
 
   return {
     name: patientName,
-    text: `${patientName} is paused in ${therapyName}${completionPhrase}.`,
+    activity: `is paused in ${therapyName}`,
     flare: timer.flare
   };
 }
@@ -155,33 +133,82 @@ function completedPatientStatusPhrase(patient) {
   }
 
   const completedLabels = completedTreatmentLabels(patient.patientChecks);
-  const completedText = completedLabels.length
-    ? `has completed ${sentenceList(completedLabels)}`
-    : "is listed in completed treatments";
+
+  if (completedLabels.length === 0) {
+    return null;
+  }
 
   return {
     name: patientName,
-    text: `${patientName} ${completedText}.`,
+    completedLabels,
     flare: false
   };
 }
 
 function patientStatusItems() {
   const therapyTimers = state.timers.filter((timer) => timer.group === "therapy");
-  const activeStatuses = therapyTimers
-    .map(therapyStatusPhrase)
-    .filter(Boolean);
-  const activePatientNames = new Set(activeStatuses.map((status) => status.name.toLowerCase()));
-  const completedStatuses = (state.completedPatients || [])
-    .filter((patient) => {
-      const patientName = patient.patientName?.trim().toLowerCase();
+  const groupedStatuses = new Map();
 
-      return patientName && !activePatientNames.has(patientName);
-    })
+  function getStatusGroup(name) {
+    const key = name.toLowerCase();
+
+    if (!groupedStatuses.has(key)) {
+      groupedStatuses.set(key, {
+        name,
+        activities: [],
+        completedLabels: [],
+        flare: false
+      });
+    }
+
+    return groupedStatuses.get(key);
+  }
+
+  for (const status of therapyTimers.map(therapyStatusPhrase).filter(Boolean)) {
+    const group = getStatusGroup(status.name);
+
+    if (status.activity) {
+      group.activities.push(status.activity);
+    }
+    group.flare = group.flare || status.flare;
+  }
+
+  const completedStatuses = (state.completedPatients || [])
     .map(completedPatientStatusPhrase)
     .filter(Boolean);
 
-  return [...activeStatuses, ...completedStatuses];
+  for (const status of completedStatuses) {
+    const group = getStatusGroup(status.name);
+
+    for (const label of status.completedLabels) {
+      if (!group.completedLabels.includes(label)) {
+        group.completedLabels.push(label);
+      }
+    }
+  }
+
+  return [...groupedStatuses.values()]
+    .map((status) => {
+      const details = [];
+
+      if (status.activities.length > 0) {
+        details.push(sentenceList(status.activities));
+      }
+      if (status.completedLabels.length > 0) {
+        details.push(`has completed ${sentenceList(status.completedLabels)}`);
+      }
+
+      if (details.length === 0) {
+        return null;
+      }
+
+      return {
+        name: status.name,
+        text: `${status.name} ${details.join(", ")}.`,
+        flare: status.flare
+      };
+    })
+    .filter(Boolean);
 }
 
 function renderPatientStatus() {
@@ -415,13 +442,12 @@ function renderTimerList() {
         <button class="flare-toggle${timer.flare ? " active" : ""}" type="button" aria-pressed="${timer.flare}" aria-label="Toggle flare-up alert for ${timer.name}">
           <span aria-hidden="true">🔥</span>
         </button>
-        <button class="complete-patient-toggle" type="button" aria-label="Add patient from ${timer.name} to completed treatments">
+        <button class="complete-patient-toggle" type="button" aria-label="Add patient from ${timer.name} to patient treatments">
           <span aria-hidden="true">+</span>
         </button>
       `}
       <div class="tile-main">
         <h3 class="tile-name"></h3>
-        <span class="tile-meta">${timerMeta(timer)}</span>
       </div>
       <div class="tile-time">${formatTime(timer.remainingMs)}</div>
       <div class="mini-progress${timer.mode === "countup" ? " wait-progress" : ""}" aria-hidden="true">
@@ -434,7 +460,6 @@ function renderTimerList() {
           <div class="time-adjustments">
             <button class="button compact adjust-time subtract-thirty-time" type="button">-30s</button>
             <button class="button compact adjust-time subtract-ten-time" type="button">-10s</button>
-            <button class="button compact adjust-time subtract-time" type="button">-5s</button>
           </div>
         `}
       </div>
@@ -482,9 +507,6 @@ function renderTimerList() {
     card.querySelector(".subtract-ten-time")?.addEventListener("click", () => {
       addSecondsFor(timer.id, -10);
     });
-    card.querySelector(".subtract-time")?.addEventListener("click", () => {
-      addSecondsFor(timer.id, -5);
-    });
     card.querySelector(".reset-timer").addEventListener("click", () => {
       changeTimerFor(timer.id, "reset");
     });
@@ -518,7 +540,7 @@ function renderPatientList() {
   els.patientList.innerHTML = "";
 
   if (patientItems.length === 0) {
-    els.patientList.innerHTML = `<p class="patient-empty">No completed treatments yet</p>`;
+    els.patientList.innerHTML = `<p class="patient-empty">No patient treatments yet</p>`;
     return;
   }
 

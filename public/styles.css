@@ -90,10 +90,11 @@ input {
 
 .brand-row {
   width: 100%;
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(250px, 300px) minmax(300px, 430px) minmax(250px, 300px);
   align-items: center;
   justify-content: center;
-  position: relative;
+  gap: clamp(18px, 3vw, 42px);
 }
 
 .brand-lockup {
@@ -118,9 +119,8 @@ input {
 }
 
 .quick-alert-feed {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
+  position: static;
+  transform: none;
   border-radius: 8px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(232, 247, 250, 0.58));
@@ -128,8 +128,7 @@ input {
 }
 
 .quick-alert-feed {
-  right: calc(50% + 250px);
-  width: 300px;
+  width: 100%;
   height: 190px;
   display: grid;
   align-content: start;
@@ -290,11 +289,9 @@ button:focus-visible {
 }
 
 .patient-task-panel {
-  position: absolute;
-  left: calc(50% + 250px);
-  top: 50%;
-  transform: translateY(-50%);
-  width: 300px;
+  position: static;
+  transform: none;
+  width: 100%;
   height: 190px;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
@@ -824,8 +821,7 @@ button:focus-visible {
   }
 
   .patient-task-panel {
-    left: calc(50% + 230px);
-    width: 250px;
+    width: 100%;
   }
 
   .provider-list {
@@ -866,6 +862,18 @@ button:focus-visible {
 
   .section-title {
     font-size: 1.2rem;
+  }
+}
+
+@media (max-width: 1180px) and (min-width: 701px) {
+  .brand-row {
+    grid-template-columns: minmax(220px, 280px) minmax(280px, 380px) minmax(220px, 280px);
+    gap: clamp(16px, 2vw, 28px);
+  }
+
+  .quick-alert-feed,
+  .patient-task-panel {
+    width: 100%;
   }
 }
 

@@ -19,7 +19,7 @@ const TIMER_PRESETS = [
   { id: "bed-5", name: "Bed 5", minutes: 10, mode: "countdown", group: "therapy" },
   { id: "roller-table-1", name: "Roller Table 1", minutes: 10, mode: "countdown", group: "therapy" },
   { id: "roller-table-2", name: "Roller Table 2", minutes: 10, mode: "countdown", group: "therapy" },
-  { id: "decompression-chair", name: "Decompression Chair", minutes: 12, mode: "countdown", group: "therapy" },
+  { id: "decompression-chair", name: "Decomp", minutes: 12, mode: "countdown", group: "therapy" },
   { id: "rehab-therapy", name: "Rehab Therapy", minutes: 10, mode: "countdown", group: "therapy" }
 ];
 
