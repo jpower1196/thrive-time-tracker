@@ -182,11 +182,6 @@ input {
   line-height: 1.25;
 }
 
-.patient-status-item.flare {
-  border-color: rgba(169, 71, 56, 0.34);
-  background: linear-gradient(135deg, rgba(255, 248, 246, 0.96), rgba(241, 165, 160, 0.18));
-}
-
 .stage-copy {
   display: grid;
   gap: 12px;
@@ -961,54 +956,6 @@ button:focus-visible {
 .temp-name-input:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(100, 190, 207, 0.16);
-}
-
-.flare-toggle,
-.complete-patient-toggle {
-  position: absolute;
-  bottom: 20px;
-  display: grid;
-  place-items: center;
-  width: 26px;
-  height: 26px;
-  border: 1px solid rgba(199, 166, 106, 0.28);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.74);
-  color: rgba(101, 113, 124, 0.58);
-  cursor: pointer;
-  font-size: 0.82rem;
-  filter: grayscale(1);
-  opacity: 0.62;
-  padding: 0;
-  transition: transform 150ms ease, background 150ms ease, box-shadow 150ms ease, opacity 150ms ease, filter 150ms ease;
-}
-
-.flare-toggle {
-  left: 10px;
-}
-
-.complete-patient-toggle {
-  right: 10px;
-  border-color: rgba(100, 190, 207, 0.42);
-  color: var(--teal-deep);
-  font-size: 1.05rem;
-  font-weight: 900;
-  filter: none;
-  opacity: 0.76;
-}
-
-.flare-toggle:hover,
-.complete-patient-toggle:hover {
-  transform: translateY(-1px);
-  opacity: 0.86;
-  border-color: rgba(199, 166, 106, 0.52);
-}
-
-.flare-toggle.active {
-  background: linear-gradient(135deg, rgba(255, 250, 241, 0.98), rgba(241, 223, 189, 0.78));
-  box-shadow: 0 0 0 3px rgba(199, 166, 106, 0.18), 0 8px 18px rgba(169, 71, 56, 0.14);
-  filter: grayscale(0);
-  opacity: 1;
 }
 
 .tile-main {

@@ -134,23 +134,20 @@ function therapyStatusPhrase(timer) {
   if (timer.running) {
     return {
       name: patientName,
-      activity: locationPhrase,
-      flare: timer.flare
+      activity: locationPhrase
     };
   }
 
   if (isTimerAtFullTime(timer)) {
     return {
       name: patientName,
-      activity: null,
-      flare: timer.flare
+      activity: null
     };
   }
 
   return {
     name: patientName,
-    activity: `is paused in ${therapyName}`,
-    flare: timer.flare
+    activity: `is paused in ${therapyName}`
   };
 }
 
@@ -191,8 +188,7 @@ function completedPatientStatusPhrase(patient) {
 
   return {
     name: patientName,
-    completedLabels,
-    flare: false
+    completedLabels
   };
 }
 
@@ -207,8 +203,7 @@ function patientStatusItems() {
       groupedStatuses.set(key, {
         name,
         activities: [],
-        completedLabels: [],
-        flare: false
+        completedLabels: []
       });
     }
 
@@ -221,7 +216,6 @@ function patientStatusItems() {
     if (status.activity) {
       group.activities.push(status.activity);
     }
-    group.flare = group.flare || status.flare;
   }
 
   const completedStatuses = (state.completedPatients || [])
@@ -255,8 +249,7 @@ function patientStatusItems() {
 
       return {
         name: status.name,
-        text: `${status.name} ${details.join(", ")}.`,
-        flare: status.flare
+        text: `${status.name} ${details.join(", ")}.`
       };
     })
     .filter(Boolean);
@@ -275,8 +268,8 @@ function renderPatientStatus() {
 
   for (const status of statuses) {
     const item = document.createElement("p");
-    item.className = `patient-status-item${status.flare ? " flare" : ""}`;
-    item.textContent = status.flare ? `${status.text} Flare-up indicated.` : status.text;
+    item.className = "patient-status-item";
+    item.textContent = status.text;
     els.quickAlertFeed.append(item);
   }
 }
@@ -410,17 +403,6 @@ async function addSecondsFor(timerId, seconds) {
   });
 }
 
-async function completePatientFor(timerId) {
-  await requestJson(`/api/timers/${timerId}`, {
-    method: "POST",
-    body: JSON.stringify({
-      action: "complete-patient",
-      seconds: 0,
-      actor: actor()
-    })
-  });
-}
-
 async function addPatientRecord(patientName, patientTreatments) {
   await requestJson("/api/completed-patients", {
     method: "POST",
@@ -525,12 +507,6 @@ function renderTimerList() {
         <span class="tile-dot" aria-hidden="true"></span>
       </div>
       ${isProvider ? "" : `
-        <button class="flare-toggle${timer.flare ? " active" : ""}" type="button" aria-pressed="${timer.flare}" aria-label="Toggle flare-up alert for ${timer.name}">
-          <span aria-hidden="true">🔥</span>
-        </button>
-        <button class="complete-patient-toggle" type="button" aria-label="Add patient from ${timer.name} to patient treatments">
-          <span aria-hidden="true">+</span>
-        </button>
       `}
       <div class="tile-main">
         <h3 class="tile-name"></h3>
@@ -580,12 +556,6 @@ function renderTimerList() {
     });
     card.querySelector(".toggle-timer").addEventListener("click", () => {
       changeTimerFor(timer.id, timer.running ? "stop" : "start");
-    });
-    card.querySelector(".flare-toggle")?.addEventListener("click", () => {
-      changeTimerFor(timer.id, "flare");
-    });
-    card.querySelector(".complete-patient-toggle")?.addEventListener("click", () => {
-      completePatientFor(timer.id);
     });
     card.querySelector(".subtract-thirty-time")?.addEventListener("click", () => {
       addSecondsFor(timer.id, -30);
