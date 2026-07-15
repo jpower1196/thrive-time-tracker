@@ -3,13 +3,26 @@ const els = {
   providerList: document.querySelector("#providerList"),
   patientList: document.querySelector("#patientList"),
   quickAlertFeed: document.querySelector("#quickAlertFeed"),
-  rehabVisibilityToggle: document.querySelector("#rehabVisibilityToggle")
+  addPatientToggle: document.querySelector("#addPatientToggle"),
+  addPatientDialog: document.querySelector("#addPatientDialog"),
+  addPatientForm: document.querySelector("#addPatientForm"),
+  closeAddPatient: document.querySelector("#closeAddPatient"),
+  cancelAddPatient: document.querySelector("#cancelAddPatient"),
+  newPatientName: document.querySelector("#newPatientName"),
+  scheduleOrderToggle: document.querySelector("#scheduleOrderToggle"),
+  scheduleOrderDialog: document.querySelector("#scheduleOrderDialog"),
+  scheduleOrderForm: document.querySelector("#scheduleOrderForm"),
+  closeScheduleOrder: document.querySelector("#closeScheduleOrder"),
+  clearScheduleOrder: document.querySelector("#clearScheduleOrder"),
+  schedulePatientName: document.querySelector("#schedulePatientName"),
+  scheduleLineup: document.querySelector("#scheduleLineup")
 };
 
 let state = {
   activeTimerId: null,
   totalSessionsTracked: 0,
   completedPatients: [],
+  scheduleOrders: [],
   timers: []
 };
 
@@ -17,8 +30,6 @@ const temporaryNames = new Map();
 const patientNameTimers = new Map();
 const patientNameLastSent = new Map();
 const EMPTY_PATIENT_STATUS = "No active patient status updates";
-const REHAB_VISIBILITY_KEY = "thriveRehabTreatmentVisible";
-let showRehabTreatment = localStorage.getItem(REHAB_VISIBILITY_KEY) !== "false";
 const spineIcon = `
   <svg class="spine-icon" viewBox="0 0 24 24" aria-hidden="true">
     <path d="M12 3.2v17.6" />
@@ -27,24 +38,39 @@ const spineIcon = `
     <path d="M12 14.7c1.8 0 3.2 1 3.2 2.2s-1.4 2.2-3.2 2.2-3.2-1-3.2-2.2 1.4-2.2 3.2-2.2Z" />
   </svg>
 `;
+const rollerTableIcon = `
+  <svg class="roller-table-icon" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M4 14.2h16" />
+    <path d="M5.5 14.2v4" />
+    <path d="M18.5 14.2v4" />
+    <path d="M7 12.6h9.8c1 0 1.8.7 2 1.6" />
+    <circle cx="6.8" cy="10.5" r="1.7" />
+    <path d="M8.8 11.3l4.2 1.3" />
+    <path d="M7 18.5h10" />
+  </svg>
+`;
 const patientFocusItems = [
-  { key: "lightning", icon: "⚡", label: "Physiotherapy" },
+  { key: "lightning", icon: "⚡", label: "STIM" },
   { key: "spine", icon: spineIcon, label: "Adjustment" },
-  { key: "strength", icon: "🏋", label: "Rehab" }
+  { key: "decomp", icon: "🪑", label: "Decomp" },
+  { key: "strength", icon: "🏋", label: "Rehab" },
+  { key: "roller", icon: rollerTableIcon, label: "Roller Table" }
+];
+const scheduleTreatmentOptions = [
+  { key: "", label: "None" },
+  { key: "lightning", label: "STIM" },
+  { key: "spine", label: "Adjustment" },
+  { key: "decomp", label: "Decomp" },
+  { key: "strength", label: "Rehab" },
+  { key: "roller", label: "Roller Table" }
 ];
 
-function visiblePatientFocusItems() {
-  return patientFocusItems.filter((focus) => showRehabTreatment || focus.key !== "strength");
-}
+function visiblePatientFocusItems(patient = {}) {
+  const selectedTreatments = Array.isArray(patient.patientTreatments)
+    ? patient.patientTreatments
+    : patientFocusItems.map((focus) => focus.key);
 
-function renderRehabVisibilityToggle() {
-  if (!els.rehabVisibilityToggle) {
-    return;
-  }
-
-  els.rehabVisibilityToggle.textContent = showRehabTreatment ? "Rehab On" : "Rehab Off";
-  els.rehabVisibilityToggle.classList.toggle("is-off", !showRehabTreatment);
-  els.rehabVisibilityToggle.setAttribute("aria-pressed", String(showRehabTreatment));
+  return patientFocusItems.filter((focus) => selectedTreatments.includes(focus.key));
 }
 
 function actor() {
@@ -97,9 +123,11 @@ function therapyStatusPhrase(timer) {
   const therapyName = timer.name === "Rehab Therapy"
     ? "rehabilitation therapy"
     : timer.name.match(/^Bed\s+\d+$/i)
-      ? "STIM therapy"
+      ? "STIM"
       : timer.name;
-  const locationPhrase = timer.name === "Decomp"
+  const locationPhrase = timer.name.match(/^Bed\s+\d+$/i)
+    ? "is on STIM"
+    : timer.name === "Decomp"
     ? "is on Decomp"
     : `is in ${therapyName}`;
 
@@ -130,13 +158,19 @@ function completedTreatmentLabels(checks = {}) {
   const labels = [];
 
   if (checks.lightning) {
-    labels.push("physiotherapies");
+    labels.push("STIM");
   }
   if (checks.spine) {
     labels.push("adjustment");
   }
+  if (checks.decomp) {
+    labels.push("Decomp");
+  }
   if (checks.strength) {
     labels.push("rehabilitation therapy");
+  }
+  if (checks.roller) {
+    labels.push("Roller Table");
   }
 
   return labels;
@@ -387,6 +421,41 @@ async function completePatientFor(timerId) {
   });
 }
 
+async function addPatientRecord(patientName, patientTreatments) {
+  await requestJson("/api/completed-patients", {
+    method: "POST",
+    body: JSON.stringify({
+      patientName,
+      patientTreatments,
+      actor: actor()
+    })
+  });
+}
+
+async function addScheduleOrder(patientName, sequence, notes) {
+  await requestJson("/api/schedule-orders", {
+    method: "POST",
+    body: JSON.stringify({
+      patientName,
+      sequence,
+      notes,
+      actor: actor()
+    })
+  });
+}
+
+async function removeScheduleOrder(id) {
+  await requestJson(`/api/schedule-orders/${id}`, {
+    method: "DELETE"
+  });
+}
+
+async function clearScheduleOrders() {
+  await requestJson("/api/schedule-orders", {
+    method: "DELETE"
+  });
+}
+
 function therapyTimers() {
   return state.timers.filter((timer) => timer.group === "therapy");
 }
@@ -551,7 +620,8 @@ function renderPatientList() {
     source: "completed",
     timerName: patient.timerName,
     patientName: patient.patientName,
-    patientChecks: patient.patientChecks || {}
+    patientChecks: patient.patientChecks || {},
+    patientTreatments: patient.patientTreatments
   }));
 
   els.patientList.innerHTML = "";
@@ -577,7 +647,7 @@ function renderPatientList() {
     item.querySelector("strong").textContent = patient.patientName.trim();
 
     const bubbles = item.querySelector(".patient-bubbles");
-    for (const focus of visiblePatientFocusItems()) {
+    for (const focus of visiblePatientFocusItems(patient)) {
       const button = document.createElement("button");
       button.className = `patient-bubble ${focus.key}${checks[focus.key] ? " active" : ""}`;
       button.type = "button";
@@ -601,26 +671,167 @@ function renderPatientList() {
   }
 }
 
+function treatmentLabel(key) {
+  return scheduleTreatmentOptions.find((option) => option.key === key)?.label || key;
+}
+
+function renderScheduleLineup() {
+  if (!els.scheduleLineup) {
+    return;
+  }
+
+  const orders = state.scheduleOrders || [];
+  els.scheduleLineup.innerHTML = "";
+
+  if (orders.length === 0) {
+    els.scheduleLineup.innerHTML = `<p class="schedule-empty">No schedule order yet</p>`;
+    return;
+  }
+
+  orders.forEach((order, index) => {
+    const row = document.createElement("article");
+    row.className = "schedule-lineup-item";
+    const sequence = (order.sequence || []).map(treatmentLabel).join(" → ");
+    row.innerHTML = `
+      <div class="schedule-lineup-copy">
+        <strong></strong>
+        <span class="schedule-lineup-sequence"></span>
+        <span class="schedule-lineup-notes"></span>
+      </div>
+      <button class="schedule-remove" type="button" aria-label="Remove ${order.patientName} from schedule order">×</button>
+    `;
+    row.querySelector("strong").textContent = `${index + 1}. ${order.patientName}`;
+    row.querySelector(".schedule-lineup-sequence").textContent = sequence || "No therapies selected";
+    row.querySelector(".schedule-lineup-notes").textContent = order.notes ? `Notes: ${order.notes}` : "";
+    row.querySelector(".schedule-remove").addEventListener("click", () => {
+      removeScheduleOrder(order.id);
+    });
+    els.scheduleLineup.append(row);
+  });
+}
+
 function connectEvents() {
   const events = new EventSource("/api/timers/events");
 
   events.addEventListener("timers", (event) => {
     state = JSON.parse(event.data);
     renderTimerList();
+    renderScheduleLineup();
   });
 }
 
-function connectRehabVisibilityToggle() {
-  renderRehabVisibilityToggle();
-  els.rehabVisibilityToggle?.addEventListener("click", () => {
-    showRehabTreatment = !showRehabTreatment;
-    localStorage.setItem(REHAB_VISIBILITY_KEY, String(showRehabTreatment));
-    renderRehabVisibilityToggle();
-    renderPatientList();
+function openAddPatientDialog() {
+  if (!els.addPatientDialog) {
+    return;
+  }
+
+  els.addPatientForm?.reset();
+  els.addPatientDialog.showModal();
+  setTimeout(() => els.newPatientName?.focus(), 0);
+}
+
+function closeAddPatientDialog() {
+  els.addPatientDialog?.close();
+}
+
+function connectAddPatientDialog() {
+  els.addPatientToggle?.addEventListener("click", openAddPatientDialog);
+  els.closeAddPatient?.addEventListener("click", closeAddPatientDialog);
+  els.cancelAddPatient?.addEventListener("click", closeAddPatientDialog);
+
+  els.addPatientDialog?.addEventListener("click", (event) => {
+    if (event.target === els.addPatientDialog) {
+      closeAddPatientDialog();
+    }
+  });
+
+  els.addPatientForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const formData = new FormData(els.addPatientForm);
+    const patientName = String(formData.get("patientName") || "").trim();
+    const patientTreatments = formData.getAll("treatments").map(String);
+
+    if (!patientName || patientTreatments.length === 0) {
+      if (patientTreatments.length === 0) {
+        const firstTreatment = els.addPatientForm.querySelector('input[name="treatments"]');
+        firstTreatment?.setCustomValidity("Select at least one treatment.");
+        firstTreatment?.reportValidity();
+        els.addPatientForm.querySelectorAll('input[name="treatments"]').forEach((input) => {
+          input.addEventListener("change", () => firstTreatment.setCustomValidity(""), { once: true });
+        });
+      }
+      return;
+    }
+
+    await addPatientRecord(patientName, patientTreatments);
+    closeAddPatientDialog();
+  });
+}
+
+function populateScheduleSelects() {
+  els.scheduleOrderForm?.querySelectorAll('select[name="sequence"]').forEach((select) => {
+    select.innerHTML = scheduleTreatmentOptions.map((option) => (
+      `<option value="${option.key}">${option.label}</option>`
+    )).join("");
+  });
+}
+
+function openScheduleOrderDialog() {
+  if (!els.scheduleOrderDialog) {
+    return;
+  }
+
+  els.scheduleOrderForm?.reset();
+  renderScheduleLineup();
+  els.scheduleOrderDialog.showModal();
+  setTimeout(() => els.schedulePatientName?.focus(), 0);
+}
+
+function closeScheduleOrderDialog() {
+  els.scheduleOrderDialog?.close();
+}
+
+function connectScheduleOrderDialog() {
+  populateScheduleSelects();
+  els.scheduleOrderToggle?.addEventListener("click", openScheduleOrderDialog);
+  els.closeScheduleOrder?.addEventListener("click", closeScheduleOrderDialog);
+  els.clearScheduleOrder?.addEventListener("click", async () => {
+    const confirmed = window.confirm("This will clear all data in the Schedule Order lineup. Continue?");
+
+    if (!confirmed) {
+      return;
+    }
+
+    await clearScheduleOrders();
+  });
+
+  els.scheduleOrderDialog?.addEventListener("click", (event) => {
+    if (event.target === els.scheduleOrderDialog) {
+      closeScheduleOrderDialog();
+    }
+  });
+
+  els.scheduleOrderForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const formData = new FormData(els.scheduleOrderForm);
+    const patientName = String(formData.get("patientName") || "").trim();
+    const sequence = formData.getAll("sequence").map(String).filter(Boolean);
+    const notes = String(formData.get("notes") || "").trim();
+
+    if (!patientName || sequence.length === 0) {
+      return;
+    }
+
+    await addScheduleOrder(patientName, sequence, notes);
+    els.scheduleOrderForm.reset();
+    els.schedulePatientName?.focus();
   });
 }
 
 renderTimerList();
-connectRehabVisibilityToggle();
+connectAddPatientDialog();
+connectScheduleOrderDialog();
 connectEvents();
 connectKeypadShortcuts();

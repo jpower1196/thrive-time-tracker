@@ -11,19 +11,29 @@
     <main class="app-shell">
       <section class="timer-stage" aria-labelledby="timer-title">
         <div class="brand-row">
-          <aside class="quick-alert-feed" aria-label="Quick alert feed">
-            <span class="quick-alert-title">Patient Status</span>
-            <span class="quick-alert-message" id="quickAlertFeed">No active patient status updates</span>
-          </aside>
+          <div class="quick-alert-stack">
+            <aside class="quick-alert-feed" aria-label="Quick alert feed">
+              <span class="quick-alert-title">Patient Status</span>
+              <span class="quick-alert-message" id="quickAlertFeed">No active patient status updates</span>
+            </aside>
+            <button class="schedule-order-toggle" id="scheduleOrderToggle" type="button">
+              Schedule Order
+            </button>
+          </div>
         <div class="brand-lockup">
           <img class="brand-logo" src="/thrive.jpg" alt="Thrive Integrative Health">
         </div>
-          <section class="patient-task-panel" aria-labelledby="patient-task-title">
-            <div class="patient-task-heading">
-              <h2 id="patient-task-title">Patient Treatments</h2>
-            </div>
-            <div id="patientList" class="patient-list"></div>
-          </section>
+          <div class="patient-task-stack">
+            <section class="patient-task-panel" aria-labelledby="patient-task-title">
+              <div class="patient-task-heading">
+                <h2 id="patient-task-title">Patient Treatments</h2>
+              </div>
+              <div id="patientList" class="patient-list"></div>
+            </section>
+            <button class="add-patient-toggle" id="addPatientToggle" type="button">
+              Add Patient
+            </button>
+          </div>
       </div>
 
         <div class="stage-copy">
@@ -36,13 +46,93 @@
           </div>
           <div id="timerList" class="timer-list"></div>
         </section>
-
-        <button class="rehab-visibility-toggle" id="rehabVisibilityToggle" type="button" aria-pressed="true">
-          Rehab On
-        </button>
       </section>
 
     </main>
+
+    <dialog class="add-patient-dialog" id="addPatientDialog" aria-labelledby="add-patient-title">
+      <form class="add-patient-form" id="addPatientForm" method="dialog">
+        <div class="dialog-heading">
+          <h2 id="add-patient-title">Add Patient</h2>
+          <button class="dialog-close" id="closeAddPatient" type="button" aria-label="Close add patient">×</button>
+        </div>
+        <label class="field-label" for="newPatientName">Patient name</label>
+        <input id="newPatientName" name="patientName" type="text" autocomplete="off" maxlength="32" required>
+        <fieldset class="treatment-picker">
+          <legend>Treatments</legend>
+          <div class="treatment-button-row">
+            <label class="treatment-choice" title="STIM">
+              <input type="checkbox" name="treatments" value="lightning" aria-label="STIM">
+              <span aria-hidden="true">⚡</span>
+            </label>
+            <label class="treatment-choice" title="Adjustment">
+              <input type="checkbox" name="treatments" value="spine" aria-label="Adjustment">
+              <span class="spine-choice-icon" aria-hidden="true">
+                <svg class="spine-icon" viewBox="0 0 24 24">
+                  <path d="M12 3.2v17.6" />
+                  <path d="M12 5.2c2.3 0 4 1.2 4 2.7s-1.7 2.7-4 2.7-4-1.2-4-2.7 1.7-2.7 4-2.7Z" />
+                  <path d="M12 10.1c2.1 0 3.7 1.1 3.7 2.5s-1.6 2.5-3.7 2.5-3.7-1.1-3.7-2.5 1.6-2.5 3.7-2.5Z" />
+                  <path d="M12 14.7c1.8 0 3.2 1 3.2 2.2s-1.4 2.2-3.2 2.2-3.2-1-3.2-2.2 1.4-2.2 3.2-2.2Z" />
+                </svg>
+              </span>
+            </label>
+            <label class="treatment-choice" title="Decomp">
+              <input type="checkbox" name="treatments" value="decomp" aria-label="Decomp">
+              <span aria-hidden="true">🪑</span>
+            </label>
+            <label class="treatment-choice" title="Rehabilitation Therapy">
+              <input type="checkbox" name="treatments" value="strength" aria-label="Rehabilitation Therapy">
+              <span aria-hidden="true">🏋</span>
+            </label>
+            <label class="treatment-choice" title="Roller Table">
+              <input type="checkbox" name="treatments" value="roller" aria-label="Roller Table">
+              <span aria-hidden="true">
+                <svg class="roller-table-icon" viewBox="0 0 24 24">
+                  <path d="M4 14.2h16" />
+                  <path d="M5.5 14.2v4" />
+                  <path d="M18.5 14.2v4" />
+                  <path d="M7 12.6h9.8c1 0 1.8.7 2 1.6" />
+                  <circle cx="6.8" cy="10.5" r="1.7" />
+                  <path d="M8.8 11.3l4.2 1.3" />
+                  <path d="M7 18.5h10" />
+                </svg>
+              </span>
+            </label>
+          </div>
+        </fieldset>
+        <div class="dialog-actions">
+          <button class="button compact" id="cancelAddPatient" type="button">Cancel</button>
+          <button class="button primary compact" type="submit">Add Patient</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="schedule-order-dialog" id="scheduleOrderDialog" aria-labelledby="schedule-order-title">
+      <form class="schedule-order-form" id="scheduleOrderForm" method="dialog">
+        <div class="dialog-heading">
+          <h2 id="schedule-order-title">Schedule Order</h2>
+          <button class="dialog-close" id="closeScheduleOrder" type="button" aria-label="Close schedule order">×</button>
+        </div>
+        <div class="schedule-grid">
+          <label class="field-label" for="schedulePatientName">Patient name</label>
+          <input id="schedulePatientName" name="patientName" type="text" autocomplete="off" maxlength="32" required>
+          <div class="sequence-grid" aria-label="Therapy sequence">
+            <label>1 <select name="sequence"></select></label>
+            <label>2 <select name="sequence"></select></label>
+            <label>3 <select name="sequence"></select></label>
+            <label>4 <select name="sequence"></select></label>
+            <label>5 <select name="sequence"></select></label>
+          </div>
+          <label class="field-label" for="scheduleNotes">Notes</label>
+          <textarea id="scheduleNotes" name="notes" rows="3" maxlength="180"></textarea>
+        </div>
+        <div class="dialog-actions">
+          <button class="button primary compact" type="submit">Add to Lineup</button>
+        </div>
+        <div class="schedule-lineup" id="scheduleLineup" aria-live="polite"></div>
+        <button class="button compact danger clear-schedule-button" id="clearScheduleOrder" type="button">Clear Schedule</button>
+      </form>
+    </dialog>
 
     <script src="/app.js"></script>
   </body>

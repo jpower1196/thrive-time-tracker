@@ -26,8 +26,12 @@ const TIMER_PRESETS = [
 const DEFAULT_PATIENT_CHECKS = {
   lightning: false,
   spine: false,
-  strength: false
+  decomp: false,
+  strength: false,
+  roller: false
 };
+const PATIENT_TREATMENTS = Object.keys(DEFAULT_PATIENT_CHECKS);
+const SCHEDULE_TREATMENTS = new Set(PATIENT_TREATMENTS);
 
 function cleanPatientChecks(checks = {}) {
   const source = checks && typeof checks === "object" ? checks : {};
@@ -35,8 +39,24 @@ function cleanPatientChecks(checks = {}) {
   return {
     lightning: Boolean(source.lightning),
     spine: Boolean(source.spine),
-    strength: Boolean(source.strength)
+    decomp: Boolean(source.decomp),
+    strength: Boolean(source.strength),
+    roller: Boolean(source.roller)
   };
+}
+
+function cleanPatientTreatments(treatments = PATIENT_TREATMENTS) {
+  if (!Array.isArray(treatments)) {
+    return [...PATIENT_TREATMENTS];
+  }
+
+  const cleanTreatments = treatments
+    .map((treatment) => String(treatment || ""))
+    .filter((treatment, index, source) => (
+      PATIENT_TREATMENTS.includes(treatment) && source.indexOf(treatment) === index
+    ));
+
+  return cleanTreatments.length > 0 ? cleanTreatments : [...PATIENT_TREATMENTS];
 }
 
 function cleanCompletedPatients(completedPatients = []) {
@@ -50,8 +70,28 @@ function cleanCompletedPatients(completedPatients = []) {
     timerName: String(patient.timerName || "Timer").trim().slice(0, 80) || "Timer",
     patientName: String(patient.patientName || "").trim().slice(0, 32),
     patientChecks: cleanPatientChecks(patient.patientChecks),
+    patientTreatments: cleanPatientTreatments(patient.patientTreatments),
     completedAt: Number(patient.completedAt) || Date.now()
   })).filter((patient) => patient.patientName);
+}
+
+function cleanScheduleOrders(scheduleOrders = []) {
+  if (!Array.isArray(scheduleOrders)) {
+    return [];
+  }
+
+  return scheduleOrders.map((order) => ({
+    id: String(order.id || `schedule-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`),
+    patientName: String(order.patientName || "").trim().slice(0, 32),
+    sequence: Array.isArray(order.sequence)
+      ? order.sequence
+        .map((treatment) => String(treatment || ""))
+        .filter((treatment) => SCHEDULE_TREATMENTS.has(treatment))
+        .slice(0, 5)
+      : [],
+    notes: String(order.notes || "").trim().slice(0, 180),
+    createdAt: Number(order.createdAt) || Date.now()
+  })).filter((order) => order.patientName && order.sequence.length > 0);
 }
 
 function storedSessionTotal() {
@@ -94,6 +134,7 @@ function defaultState() {
     activeTimerId: timers[0].id,
     totalSessionsTracked: storedSessionTotal(),
     completedPatients: [],
+    scheduleOrders: [],
     timers
   };
 }
@@ -114,6 +155,7 @@ function loadState() {
         Math.max(0, Number(parsed.totalSessionsTracked) || 0)
       ),
       completedPatients: cleanCompletedPatients(parsed.completedPatients),
+      scheduleOrders: cleanScheduleOrders(parsed.scheduleOrders),
       timers: parsed.timers.map((timer) => ({
         id: String(timer.id || createTimer().id),
         name: String(timer.name || "Timer").trim().slice(0, 80) || "Timer",
@@ -170,6 +212,7 @@ function normalizeFixedState(inputState) {
       : timers[0].id,
     totalSessionsTracked: Math.max(0, Number(inputState.totalSessionsTracked) || 0),
     completedPatients: cleanCompletedPatients(inputState.completedPatients),
+    scheduleOrders: cleanScheduleOrders(inputState.scheduleOrders),
     timers
   };
 }
@@ -214,7 +257,8 @@ function upsertPatientRecord(timer, patientName = timer.patientName) {
       timerId: timer.id,
       timerName: timer.name,
       patientName: cleanName,
-      patientChecks: cleanPatientChecks(timer.patientChecks)
+      patientChecks: cleanPatientChecks(timer.patientChecks),
+      patientTreatments: cleanPatientTreatments(completedPatients[existingIndex].patientTreatments)
     };
     state.completedPatients = completedPatients;
     return completedPatients[existingIndex];
@@ -226,6 +270,7 @@ function upsertPatientRecord(timer, patientName = timer.patientName) {
     timerName: timer.name,
     patientName: cleanName,
     patientChecks: cleanPatientChecks(timer.patientChecks),
+    patientTreatments: [...PATIENT_TREATMENTS],
     completedAt: Date.now()
   };
 
@@ -248,6 +293,36 @@ function completePatientTreatment(timer) {
       item.id === patient.id ? { ...item, completedAt: Date.now() } : item
     ));
   }
+}
+
+function addManualPatientRecord(body = {}) {
+  const patientName = String(body.patientName || "").trim().slice(0, 32);
+  const selectedTreatments = Array.isArray(body.patientTreatments) ? body.patientTreatments : [];
+  const patientTreatments = cleanPatientTreatments(selectedTreatments);
+  const hasValidTreatment = selectedTreatments.some((treatment) => (
+    PATIENT_TREATMENTS.includes(String(treatment || ""))
+  ));
+
+  if (!patientName || !hasValidTreatment) {
+    return null;
+  }
+
+  const patient = {
+    id: `manual-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+    timerId: "manual",
+    timerName: "Manual Add",
+    patientName,
+    patientChecks: { ...DEFAULT_PATIENT_CHECKS },
+    patientTreatments,
+    completedAt: Date.now()
+  };
+
+  state.completedPatients = cleanCompletedPatients([
+    ...cleanCompletedPatients(state.completedPatients),
+    patient
+  ]);
+
+  return patient;
 }
 
 function normalizeTimers() {
@@ -311,8 +386,39 @@ function snapshot() {
     activeTimerId: state.activeTimerId,
     totalSessionsTracked: state.totalSessionsTracked || 0,
     completedPatients: cleanCompletedPatients(state.completedPatients),
+    scheduleOrders: cleanScheduleOrders(state.scheduleOrders),
     timers: state.timers.map(publicTimer)
   };
+}
+
+function addScheduleOrder(body = {}) {
+  const patientName = String(body.patientName || "").trim().slice(0, 32);
+  const sequence = Array.isArray(body.sequence)
+    ? body.sequence
+      .map((treatment) => String(treatment || ""))
+      .filter((treatment) => SCHEDULE_TREATMENTS.has(treatment))
+      .slice(0, 5)
+    : [];
+  const notes = String(body.notes || "").trim().slice(0, 180);
+
+  if (!patientName || sequence.length === 0) {
+    return null;
+  }
+
+  const order = {
+    id: `schedule-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+    patientName,
+    sequence,
+    notes,
+    createdAt: Date.now()
+  };
+
+  state.scheduleOrders = cleanScheduleOrders([
+    ...cleanScheduleOrders(state.scheduleOrders),
+    order
+  ]);
+
+  return order;
 }
 
 function getTimer(id) {
@@ -552,6 +658,71 @@ const server = http.createServer(async (request, response) => {
       response.writeHead(400, { "Content-Type": "application/json; charset=utf-8" });
       response.end(JSON.stringify({ error: "Invalid JSON." }));
     }
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/completed-patients") {
+    try {
+      const body = await readJson(request);
+      const patient = addManualPatientRecord(body);
+
+      if (!patient) {
+        response.writeHead(400, { "Content-Type": "application/json; charset=utf-8" });
+        response.end(JSON.stringify({ error: "Patient name is required." }));
+        return;
+      }
+
+      saveState();
+      broadcast();
+      response.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
+      response.end(JSON.stringify(snapshot()));
+    } catch (error) {
+      response.writeHead(400, { "Content-Type": "application/json; charset=utf-8" });
+      response.end(JSON.stringify({ error: "Invalid JSON." }));
+    }
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/schedule-orders") {
+    try {
+      const body = await readJson(request);
+      const order = addScheduleOrder(body);
+
+      if (!order) {
+        response.writeHead(400, { "Content-Type": "application/json; charset=utf-8" });
+        response.end(JSON.stringify({ error: "Patient name and sequence are required." }));
+        return;
+      }
+
+      saveState();
+      broadcast();
+      response.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
+      response.end(JSON.stringify(snapshot()));
+    } catch (error) {
+      response.writeHead(400, { "Content-Type": "application/json; charset=utf-8" });
+      response.end(JSON.stringify({ error: "Invalid JSON." }));
+    }
+    return;
+  }
+
+  if (request.method === "DELETE" && url.pathname === "/api/schedule-orders") {
+    state.scheduleOrders = [];
+    saveState();
+    broadcast();
+    response.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
+    response.end(JSON.stringify(snapshot()));
+    return;
+  }
+
+  const scheduleOrderMatch = url.pathname.match(/^\/api\/schedule-orders\/([^/]+)$/);
+
+  if (scheduleOrderMatch && request.method === "DELETE") {
+    state.scheduleOrders = cleanScheduleOrders(state.scheduleOrders)
+      .filter((order) => order.id !== scheduleOrderMatch[1]);
+    saveState();
+    broadcast();
+    response.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
+    response.end(JSON.stringify(snapshot()));
     return;
   }
 
